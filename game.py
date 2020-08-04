@@ -32,8 +32,6 @@ class Game:
 
       for i in range(len(self.agents)): self.agents[i].set_canvas(self.screen)
       for i in range(len(self.obstacles)): self.obstacles[i].set_canvas(self.screen)
-    else:
-      self.screen = None
 
   def run(self):
     while self.running:
@@ -47,7 +45,6 @@ class Game:
         if self.player_control:
           self.agents[0].report_inputs(self.key_states)
           self.agents[0].draw_fov()
-          self.agents[0].draw_aim()
 
       for i, agent in enumerate(self.agents):
         agent.tick_time()
@@ -56,6 +53,9 @@ class Game:
         if self.ui:
           agent.draw_agent()
           agent.draw_hitbox()
+          agent.draw_health_bar()
+          agent.draw_accuracy_bar()
+          agent.draw_aim()
 
       if self.ui:
         pygame.display.flip()
@@ -66,8 +66,7 @@ class Game:
 
   def update_fps(self):
     fps = str(int(self.clock.get_fps()))
-    fps_text = self.font.render(fps, 1, pygame.Color("coral"))
-    return fps_text
+    return self.font.render(fps, 1, pygame.Color("coral"))
 
   def process_events(self, events):
     for event in events:

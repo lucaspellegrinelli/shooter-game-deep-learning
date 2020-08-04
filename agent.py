@@ -1,10 +1,12 @@
 import pygame
 import math
 import numpy as np
+import random
 
 class Agent:
   def __init__(self, position):
     self.canvas = None
+    self.framerate = 60
 
     self.current_position = position
     self.current_speed = [0, 0]
@@ -13,14 +15,16 @@ class Agent:
     self.current_health = 100
 
     self.current_bullets = 30
+
+    self.current_walk_accuracy = 1.0
     self.current_accuracy = 1.0
 
-    self.gun_fire_rate = 3
+    self.gun_fire_rate = self.framerate / 10 # 0.1 sec / shot
     self.gun_fire_rate_counter = 0
     self.gun_damage = 10
 
-    self.gun_fire_accuracy_penalty = 0.04
-    self.gun_frame_accuracy_recovery = 0.005
+    self.gun_fire_accuracy_penalty = 0.125
+    self.gun_frame_accuracy_recovery = 0.01 / (self.framerate / 60)
 
     self.agent_size = 10
 
@@ -39,10 +43,10 @@ class Agent:
     self.angle_speed = 0.05
     self.speed = 2
 
-    self.input_frame_delay = 3
+    self.input_frame_delay = self.framerate / 10 # 0.1 sec
     self.input_cache = []
 
-    self.vision_frame_delay = 3
+    self.vision_frame_delay = self.framerate / 10 # 0.1 sec
     self.vision_cache = []
 
     self.map_hitboxes = []
@@ -50,6 +54,16 @@ class Agent:
   def tick_time(self):
     self.calculate_hitbox_lines()
 
+    self.move()
+    
+    if self.gun_fire_rate_counter > 0:
+      self.gun_fire_rate_counter -= 1
+
+    self.current_accuracy += self.gun_frame_accuracy_recovery
+    if self.current_accuracy > 1.0: self.current_accuracy = 1.0
+    if self.current_accuracy < 0.0: self.current_accuracy = 0.0
+
+  def move(self):
     new_pos_x = self.current_position[0] + self.current_speed[0] * self.speed
     new_pos_y = self.current_position[1] + self.current_speed[1] * self.speed
 
@@ -81,12 +95,10 @@ class Agent:
     if not clipped_x: self.current_position[0] = new_pos_x
     if not clipped_y: self.current_position[1] = new_pos_y
 
-    if self.gun_fire_rate_counter > 0:
-      self.gun_fire_rate_counter -= 1
-
-    self.current_accuracy += self.gun_frame_accuracy_recovery
-    if self.current_accuracy > 1.0: self.current_accuracy = 1.0
-    if self.current_accuracy < 0.0: self.current_accuracy = 0.0
+    if (not clipped_x and self.current_speed[0] != 0) or (not clipped_y and self.current_speed[1] != 0):
+      self.current_walk_accuracy = 0.5
+    else:
+      self.current_walk_accuracy = 1.0
 
   def fire_gun(self):
     if self.gun_fire_rate_counter == 0 and self.current_bullets > 0:
@@ -96,7 +108,8 @@ class Agent:
 
       pt = self.calculate_raycast_hit(self.current_angle)
       if isinstance(pt["object"], Agent):
-        pt["object"].take_damage(self.gun_damage)
+        if random.random() < self.current_accuracy * self.current_walk_accuracy:
+          pt["object"].take_damage(self.gun_damage)
 
   def calculate_hitbox_lines(self):
     self.hitbox_lines = []
@@ -120,8 +133,9 @@ class Agent:
 
     angle_start = self.current_angle - (self.fov_angle / 2) * (1 - 1 / self.fov_points)
     angle_end = self.current_angle + self.fov_angle / 2
+    angle_step = self.fov_angle / self.fov_points
 
-    for a in np.linspace(angle_start, angle_end, self.fov_points):
+    for a in np.arange(angle_start, angle_end, angle_step):
       pt = self.calculate_raycast_hit(a)
       raycast_hits.append(pt)
 
@@ -244,6 +258,30 @@ class Agent:
         color = (255, 0, 0)
         position = (int(r["pos"][0]), int(r["pos"][1]))
         pygame.draw.circle(self.canvas, color, position, 1)
+
+  def draw_health_bar(self):
+    bg_color = (255, 0, 0)
+    bg_rect = (self.current_position[0] - 20, self.current_position[1] - 20, 40, 5)
+    
+    overlay_color = (0, 255, 0)
+    overlay_rect = (self.current_position[0] - 20, self.current_position[1] - 20, 40 * self.current_health / 100, 5)
+    
+    pygame.draw.rect(self.canvas, bg_color, bg_rect)
+
+    if self.current_health > 0:
+      pygame.draw.rect(self.canvas, overlay_color, overlay_rect)
+
+  def draw_accuracy_bar(self):
+    bg_color = (255, 0, 0)
+    bg_rect = (self.current_position[0] - 20, self.current_position[1] - 30, 40, 5)
+
+    overlay_color = (0, 0, 255)
+    overlay_rect = (self.current_position[0] - 20, self.current_position[1] - 30, 40 * self.current_accuracy, 5)
+
+    pygame.draw.rect(self.canvas, bg_color, bg_rect)
+
+    if self.current_accuracy > 0:
+      pygame.draw.rect(self.canvas, overlay_color, overlay_rect)
 
   def set_canvas(self, canvas):
     self.canvas = canvas

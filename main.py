@@ -25,5 +25,5 @@ obstacles = [
   ])
 ]
 
-game = Game(agents, obstacles, True, True)
+game = Game(agents, obstacles, ui=True, player_control=True)
 game.run()

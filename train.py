@@ -11,7 +11,7 @@ from shooter import Game, Agent, Obstacle
 
 params = {
   "epsilon": 1,
-  "game_buffer": 25,
+  "game_buffer": 100,
   "batch_size": 64,
   "memory": 120,
   "input_count": 45 * 2 + 3
@@ -110,16 +110,13 @@ while True:
 
   # Decrement epsilon over time.
   if params["epsilon"] > 0.1:
-    params["epsilon"] -= 1.0 / 50.0
+    params["epsilon"] -= 1.0 / 100.0
 
   # Add new game to buffer
   for i in range(len(actions_buffer)):
     actions_buffer[i].append([])
     if len(actions_buffer[i]) > params["game_buffer"]:
       actions_buffer[i].pop()
-
-  game_rewards = []
-  for _ in range(len(game.agents)): game_rewards.append(0)
 
   while game.running:
     # If observing
@@ -147,9 +144,6 @@ while True:
     # Take action, observe new state and get agents rewards
     rewards, new_states = game.step(actions)
 
-    for i, r in enumerate(rewards):
-      game_rewards[i] += r
-
     # Save the state, actions and reward
     for i in range(len(rewards)):
       actions_buffer[i][-1].append((states[i], actions[i], rewards[i], new_states[i]))
@@ -159,6 +153,13 @@ while True:
 
   if ((game_count - 1) % log_freq) == 0:
     print("\nGame", game_count, "ended with", game.frame_count, "frames")
+
+    for agent_i in range(len(game.agents)):
+      total_reward = 0
+      for s, a, r, ns in actions_buffer[agent_i][-1]:
+        total_reward += r
+
+      print("Agent", agent_i, "Rewards:", total_reward)
 
   # Training loop for each agent
   for agent_i in range(len(game.agents)):
@@ -187,9 +188,6 @@ while True:
         x_train, y_train, batch_size=params["batch_size"],
         epochs=1, verbose=0
     )
-
-    if ((game_count - 1) % log_freq) == 0:
-      print("Agent", agent_i, "Rewards:", game_rewards[agent_i])
 
   if ((game_count - 1) % log_freq) == 0:
     game_actions = []

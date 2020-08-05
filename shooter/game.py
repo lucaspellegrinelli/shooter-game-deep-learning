@@ -4,6 +4,7 @@ except: pass
 
 from shooter.agent import Agent
 from shooter.obstacle import Obstacle
+import random
 
 class Game:
   def __init__(self, agents, obstacles, ui=False, player_control=False):

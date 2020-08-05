@@ -323,7 +323,7 @@ class Agent:
     elif label == "hit_agent":
       self.reward += 300
     elif label == "tracking":
-      self.reward += 1 - info
+      self.reward += 1 - abs(info)
     elif label == "take_damage":
       self.reward -= 50
     else:

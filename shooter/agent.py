@@ -57,6 +57,7 @@ class Agent:
     self.time_progress = 0
 
     self.reward = 0
+    self.reward_reasons = []
 
   def tick_time(self):
     self.calculate_hitbox_lines()
@@ -328,6 +329,8 @@ class Agent:
     self.current_health <= 0
 
   def give_reward(self, label, info=0.0):
+    self.reward_reasons.append(label)
+
     if label == "shoot_at_agent":
       self.reward += 200
     elif label == "hit_agent":
@@ -340,4 +343,5 @@ class Agent:
       self.reward = 0
 
   def reset_reward(self):
+    self.reward_reasons = []
     self.reward = 0

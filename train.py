@@ -106,7 +106,7 @@ while True:
   game_count += 1
 
   # Get initial state
-  _, states = game.step([get_random_action() for _ in range(len(game.agents))])
+  _, _, states = game.step([get_random_action() for _ in range(len(game.agents))])
 
   # Decrement epsilon over time.
   if params["epsilon"] > 0.1:
@@ -119,6 +119,7 @@ while True:
       actions_buffer[i].pop(0)
 
   game_rewards_sum = [0 for _ in range(len(game.agents))]
+  game_rewards_reasons = [[] for _ in range(len(game.agents))]
   game_actions = [[] for _ in range(len(game.agents))]
 
   while game.running:
@@ -145,11 +146,12 @@ while True:
         })
 
     # Take action, observe new state and get agents rewards
-    rewards, new_states = game.step(actions)
+    rewards, rewards_reasons, new_states = game.step(actions)
 
     # Save relevant stuff
     for agent_i in range(len(game.agents)):
       game_rewards_sum[agent_i] += rewards[agent_i]
+      game_rewards_reasons[agent_i].append(rewards_reasons[agent_i])
 
       a = actions[agent_i].copy()
       for key, value in a.items():
@@ -168,6 +170,7 @@ while True:
     print("\nGame", game_count, "ended with", game.frame_count, "frames")
     for agent_i in range(len(game.agents)):
       print("Agent", agent_i, "Rewards:", game_rewards_sum[agent_i])
+      print("Reasons:", game_rewards_reasons[agent_i])
 
   # Training loop for each agent
   for agent_i in range(len(game.agents)):

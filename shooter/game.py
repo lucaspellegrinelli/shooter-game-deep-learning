@@ -41,12 +41,15 @@ class Game:
 
   def step(self, agent_actions):
     rewards = []
+    rewards_reasons = []
     new_states = []
 
     self.frame_count += 1
 
     i = 0
     for action, agent in zip(agent_actions, self.agents):
+      rewards_reasons.append([])
+
       agent.reset_reward()
       other_agents = [a for i_, a in enumerate(self.agents) if i != i_]
       agent.report_game(other_agents, self.obstacles, self.frame_count / self.max_game_time)
@@ -54,13 +57,15 @@ class Game:
       agent.tick_time()
 
       rewards.append(agent.reward)
+      rewards_reasons[i] = agent.reward_reasons
+
       new_states.append(agent.get_state())
       i += 1
 
       if agent.is_dead() or self.frame_count > self.max_game_time:
         self.running = False
     
-    return rewards, new_states
+    return rewards, rewards_reasons, new_states
 
   def play_game(self, agent_actions):
     rewards = []

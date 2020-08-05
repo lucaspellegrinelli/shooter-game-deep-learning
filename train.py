@@ -14,7 +14,7 @@ params = {
   "game_buffer": 100,
   "batch_size": 64,
   "memory": 120,
-  "input_count": 45 * 2 + 3
+  "input_count": 45 * 2 + 4
 }
 
 # Creates the training data from mini batch

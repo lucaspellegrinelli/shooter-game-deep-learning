@@ -54,6 +54,8 @@ class Agent:
 
     self.map_hitboxes = []
 
+    self.time_progress = 0
+
     self.reward = 0
 
   def tick_time(self):
@@ -203,8 +205,9 @@ class Agent:
     self.give_reward("take_damage")
     if self.current_health < 0: self.current_health = 0
 
-  def report_game(self, agents, obstacles):
+  def report_game(self, agents, obstacles, game_time):
     self.map_hitboxes = []
+    self.time_progress = game_time
 
     for agent in agents:
       for line in agent.hitbox_lines:
@@ -229,6 +232,7 @@ class Agent:
     inputs.append(self.current_health / 100)
     inputs.append(self.current_bullets / 30)
     inputs.append(self.gun_fire_rate_counter / self.gun_fire_rate)
+    inputs.append(self.time_progress)
 
     return np.array(inputs)
 

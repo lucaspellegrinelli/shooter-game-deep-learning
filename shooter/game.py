@@ -48,7 +48,8 @@ class Game:
     i = 0
     for action, agent in zip(agent_actions, self.agents):
       agent.reset_reward()
-      agent.report_game([a for i_, a in enumerate(self.agents) if i != i_], self.obstacles)
+      other_agents = [a for i_, a in enumerate(self.agents) if i != i_]
+      agent.report_game(other_agents, self.obstacles, self.frame_count / self.max_game_time)
       agent.report_inputs(action)
       agent.tick_time()
 
@@ -77,7 +78,8 @@ class Game:
 
       for i, agent in enumerate(self.agents):
         agent.reset_reward()
-        agent.report_game([a for i_, a in enumerate(self.agents) if i != i_], self.obstacles)
+        other_agents = [a for i_, a in enumerate(self.agents) if i != i_]
+        agent.report_game(other_agents, self.obstacles, self.frame_count / self.max_game_time)
 
         indx = self.frame_count - 1
         if indx >= len(agent_actions):
@@ -121,7 +123,8 @@ class Game:
 
       for i, agent in enumerate(self.agents):
         agent.tick_time()
-        agent.report_game([a for i_, a in enumerate(self.agents) if i != i_], self.obstacles)
+        other_agents = [a for i_, a in enumerate(self.agents) if i != i_]
+        agent.report_game(other_agents, self.obstacles, self.frame_count / self.max_game_time)
 
         if self.ui:
           if i == 0 and self.player_control:

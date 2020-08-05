@@ -1,4 +1,6 @@
-# import pygame
+try:
+  import pygame
+except: pass
 
 import math
 import numpy as np
@@ -216,10 +218,12 @@ class Agent:
   def get_state(self):
     raycasts = self.calculate_raycasts()
     inputs = []
+    rc_hit_agent = []
 
     for r in raycasts:
       d = math.hypot(self.current_position[0] - r["pos"][0], self.current_position[1] - r["pos"][1])
       inputs.append(d)
+      inputs.append(1 if isinstance(r["object"], Agent) else 0)    
 
     inputs.append(self.current_health / 100)
     inputs.append(self.current_bullets / 30)

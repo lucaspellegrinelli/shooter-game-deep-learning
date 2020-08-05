@@ -1,4 +1,6 @@
-# import pygame
+try:
+  import pygame
+except: pass
 
 from shooter.agent import Agent
 from shooter.obstacle import Obstacle
@@ -57,6 +59,49 @@ class Game:
         self.running = False
     
     return rewards, new_states
+
+  def play_game(self, agent_actions):
+    while self.running:
+      if self.frame_count >= self.max_game_time:
+        self.running = False
+
+      self.frame_count += 1
+
+      if self.ui:
+        self.process_events(pygame.event.get())
+        self.screen.fill((50, 50, 50))
+        self.screen.blit(self.update_fps(), (10,0))
+
+        for o in self.obstacles: o.draw()
+
+      for i, agent in enumerate(self.agents):
+        agent.tick_time()
+        agent.report_game([a for i_, a in enumerate(self.agents) if i != i_], self.obstacles)
+
+        if self.ui:
+          indx = self.frame_count - 1
+          if indx >= len(agent_actions):
+            indx = len(agent_actions) - 1
+
+          true_keys = [key for key, item in agent_actions[indx][i].items() if item]
+
+          if len(true_keys) > 0:
+            print("Agent", i, "Frame", indx, "Keys", true_keys)
+
+          agent.report_inputs(agent_actions[indx][i])
+          agent.draw_fov()
+          agent.draw_agent()
+          agent.draw_hitbox()
+          agent.draw_health_bar()
+          agent.draw_accuracy_bar()
+          agent.draw_aim()
+
+      if self.ui:
+        pygame.display.flip()
+        self.clock.tick(self.fps)
+
+    if self.ui:
+      pygame.quit()
 
   def run(self):
     while self.running:

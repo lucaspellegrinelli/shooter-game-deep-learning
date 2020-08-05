@@ -1,4 +1,6 @@
-# import pygame
+try:
+  import pygame
+except: pass
 
 class Obstacle:
   def __init__(self, points):

@@ -146,6 +146,7 @@ while True:
         })
 
     # Take action, observe new state and get agents rewards
+    print(actions)
     rewards, rewards_reasons, new_states = game.step(actions)
 
     # Save relevant stuff

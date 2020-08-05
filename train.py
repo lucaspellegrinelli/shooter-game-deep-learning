@@ -133,13 +133,13 @@ while True:
 
         pred_actions = agent_models[i].predict(prev_states)[0]
         actions.append({
-          "left": pred_actions[0] > 0.5,
-          "right": pred_actions[1] > 0.5,
-          "up": pred_actions[2] > 0.5,
-          "down": pred_actions[3] > 0.5,
-          "rot_left": pred_actions[4] > 0.5,
-          "rot_right": pred_actions[5] > 0.5,
-          "fire": pred_actions[6] > 0.5
+          "left": pred_actions[0] > 0.0,
+          "right": pred_actions[1] > 0.0,
+          "up": pred_actions[2] > 0.0,
+          "down": pred_actions[3] > 0.0,
+          "rot_left": pred_actions[4] > 0.0,
+          "rot_right": pred_actions[5] > 0.0,
+          "fire": pred_actions[6] > 0.0
         })
 
     # Take action, observe new state and get agents rewards

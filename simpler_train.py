@@ -59,7 +59,6 @@ def create_model():
   model = Sequential()
   model.add(Input(shape=(params["input_count"])))
   model.add(Dense(64, activation='relu'))
-  model.add(Dense(32, activation='relu'))
   model.add(Dense(7, activation='linear'))
 
   model.compile(loss='mse', optimizer=Adam())
@@ -99,7 +98,7 @@ agent_models = [
 
 actions_buffer = [[], []]
 
-log_freq = 5
+log_freq = 10
 
 game_count = 0
 while True:
@@ -126,17 +125,16 @@ while True:
 
   while game.running:
     # If observing
-    if random.random() < params["epsilon"] or len(actions_buffer[i][-1]) < params["memory"]:
+    if random.random() < params["epsilon"]:
       # Take random actions
       actions = [get_random_action() for _ in range(len(game.agents))]
     else:
       # Take NN output actions
       actions = []
       for i in range(len(states)):
-        prev_states = [x[0] for x in actions_buffer[i][-1][-params["memory"]:]]
-        prev_states = np.expand_dims(prev_states, 0)
-
+        prev_states = np.expand_dims(states[i], 0)
         pred_actions = agent_models[i].predict(prev_states)[0]
+
         actions.append({
           "left": np.argmax(pred_actions) == 0,
           "right": np.argmax(pred_actions) == 1,

@@ -77,7 +77,7 @@ def get_random_action():
 def create_game():
   agents = [
     Agent([100, 400]),
-    Agent([500, 100])
+    Agent([100, 100])
   ]
 
   obstacles = [
@@ -116,6 +116,9 @@ while True:
     if len(actions_buffer[i]) > params["game_buffer"]:
       actions_buffer[i].pop()
 
+  game_rewards = []
+  for _ in range(len(game.agents)): game_rewards.append(0)
+
   while game.running:
     # If observing
     if random.random() < params["epsilon"] or len(actions_buffer[i][-1]) < params["memory"]:
@@ -142,6 +145,9 @@ while True:
     # Take action, observe new state and get agents rewards
     rewards, new_states = game.step(actions)
 
+    for i, r in enumerate(rewards):
+      game_rewards[i] += r
+
     # Save the state, actions and reward
     for i in range(len(rewards)):
       actions_buffer[i][-1].append((states[i], actions[i], rewards[i], new_states[i]))
@@ -149,7 +155,7 @@ while True:
     # Update the starting states.
     states = new_states
 
-  print("Game ended ", game.frame_count)
+  print("\nGame", game_count, "ended with", game.frame_count, "frames")
 
   # Training loop for each agent
   for agent_i in range(len(game.agents)):
@@ -174,10 +180,12 @@ while True:
     x_train, y_train = process_mini_batch(mini_batch, agent_models[agent_i])
 
     # Train the model on this batch.
-    agent_models[agent_i].fit(
+    history = agent_models[agent_i].fit(
         x_train, y_train, batch_size=params["batch_size"],
         epochs=1, verbose=0
     )
+
+    print("Agent", agent_i, "Rewards:", game_rewards[i])
 
   if ((game_count - 1) % 10) == 0:
     print("Saving game", game_count)

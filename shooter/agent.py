@@ -145,12 +145,18 @@ class Agent:
     angle_end = self.current_angle + self.fov_angle / 2
     angle_step = self.fov_angle / self.fov_points
 
+    closest_angle_to_enemy = None
     for a in np.arange(angle_start, angle_end, angle_step):
       pt = self.calculate_raycast_hit(a)
       raycast_hits.append(pt)
 
       if isinstance(pt["object"], Agent):
-        self.give_reward("tracking", a - self.current_angle)
+        a_dist = abs(a - self.current_angle)
+        if (closest_angle_to_enemy is None) or (a_dist < closest_angle_to_enemy):
+          closest_angle_to_enemy = a_dist
+
+    if closest_angle_to_enemy is not None:
+      self.give_reward("tracking", closest_angle_to_enemy)
 
     return raycast_hits
 
@@ -327,9 +333,9 @@ class Agent:
     elif label == "hit_agent":
       self.reward += 300
     elif label == "tracking":
-      self.reward += 1 - abs(info)
+      self.reward += 1.0 * (1 - abs(info))
     elif label == "take_damage":
-      self.reward -= 50
+      self.reward -= 100
     else:
       self.reward = 0
 

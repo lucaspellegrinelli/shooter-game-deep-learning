@@ -116,9 +116,10 @@ while True:
   for i in range(len(actions_buffer)):
     actions_buffer[i].append([])
     if len(actions_buffer[i]) > params["game_buffer"]:
-      actions_buffer[i].pop()
+      actions_buffer[i].pop(0)
 
-  rewards_sum = [0 for _ in range(len(game.agents))]
+  game_rewards_sum = [0 for _ in range(len(game.agents))]
+  game_actions = [[] for _ in range(len(game.agents))]
 
   while game.running:
     # If observing
@@ -146,8 +147,15 @@ while True:
     # Take action, observe new state and get agents rewards
     rewards, new_states = game.step(actions)
 
-    for i, r in enumerate(rewards):
-      rewards_sum[i] += r
+    # Save relevant stuff
+    for agent_i in range(len(game.agents)):
+      game_rewards_sum[agent_i] += rewards[agent_i]
+
+      a = actions[agent_i].copy()
+      for key, value in a.items():
+        a[key] = bool(value)
+
+      game_actions[agent_i].append(a)
 
     # Save the state, actions and reward
     for i in range(len(rewards)):
@@ -158,9 +166,8 @@ while True:
 
   if ((game_count - 1) % log_freq) == 0:
     print("\nGame", game_count, "ended with", game.frame_count, "frames")
-
     for agent_i in range(len(game.agents)):
-      print("Agent", agent_i, "Rewards:", rewards_sum[agent_i])
+      print("Agent", agent_i, "Rewards:", game_rewards_sum[agent_i])
 
   # Training loop for each agent
   for agent_i in range(len(game.agents)):
@@ -190,17 +197,6 @@ while True:
         epochs=1, verbose=0
     )
 
-  if ((game_count - 1) % log_freq) == 0:
-    game_actions = []
-    for snap_i in range(len(actions_buffer[0][-1])):
-      snap_actions = []
-      for agent_i in range(len(game.agents)):
-        a = actions_buffer[agent_i][-1][snap_i][1]
-        for key, value in a.items():
-          a[key] = bool(value)
-        snap_actions.append(a)
-      
-      game_actions.append(snap_actions)
-    
+  if ((game_count - 1) % log_freq) == 0:  
     with open("games/game_" + str(game_count) + ".json", "w") as game_json:
       json.dump(game_actions, game_json)

@@ -22,10 +22,10 @@ params = {
 def process_mini_batch(mini_batch, model):
   mb_len = len(mini_batch)
 
-  old_states = np.zeros(shape=(mb_len, params["memory"], params["input_count"]))
+  old_states = np.zeros(shape=(mb_len, params["input_count"]))
   actions = np.zeros(shape=(mb_len, 7))
   rewards = np.zeros(shape=(mb_len,))
-  new_states = np.zeros(shape=(mb_len, params["memory"], params["input_count"]))
+  new_states = np.zeros(shape=(mb_len, params["input_count"]))
 
   def action_dict_to_array(action):
     action_arr = []
@@ -35,8 +35,8 @@ def process_mini_batch(mini_batch, model):
 
   for i, m in enumerate(mini_batch):
     old_states_m, action_m, reward_m, new_states_m = m
-    old_states[i, :, :] = np.array(old_states_m)[...]
-    new_states[i, :, :] = np.array(new_states_m)[...]
+    old_states[i, :] = np.array(old_states_m)[...]
+    new_states[i, :] = np.array(new_states_m)[...]
     actions[i, :] = action_dict_to_array(action_m)[...]
     rewards[i] = reward_m
 
@@ -57,9 +57,9 @@ def process_mini_batch(mini_batch, model):
 
 def create_model():
   model = Sequential()
-  model.add(Input(shape=(params["memory"], params["input_count"])))
-  model.add(LSTM(16))
+  model.add(Input(shape=(params["input_count"])))
   model.add(Dense(64, activation='relu'))
+  model.add(Dense(32, activation='relu'))
   model.add(Dense(7, activation='linear'))
 
   model.compile(loss='mse', optimizer=Adam())
@@ -183,15 +183,8 @@ while True:
     for _ in range(params["batch_size"]):
       game_i = random.randint(0, len(actions_buffer[agent_i]) - 1)
       snap_i = random.randint(params["memory"], len(actions_buffer[agent_i][game_i]) - 1)
-
-      series = actions_buffer[agent_i][game_i][snap_i - params["memory"] : snap_i]
-      state_series = [x[0] for x in series]
-      following_state_series = [x[3] for x in series]
-
-      taken_action     = actions_buffer[agent_i][game_i][snap_i][1]
-      following_reward = actions_buffer[agent_i][game_i][snap_i][2]
-
-      mini_batch.append((state_series, taken_action, following_reward, following_state_series))
+      replay_state = actions_buffer[agent_i][game_i][snap_i]
+      mini_batch.append(replay_state)
 
     # Get training values
     x_train, y_train = process_mini_batch(mini_batch, agent_models[agent_i])

@@ -1,6 +1,7 @@
 import numpy as np
 import random
 import json
+import collections
 import tensorflow as tf
 from tensorflow.keras import layers
 from tensorflow.keras.models import Sequential
@@ -151,7 +152,7 @@ while True:
     # Save relevant stuff
     for agent_i in range(len(game.agents)):
       game_rewards_sum[agent_i] += rewards[agent_i]
-      game_rewards_reasons[agent_i].append(rewards_reasons[agent_i])
+      game_rewards_reasons[agent_i].extend(rewards_reasons[agent_i])
 
       a = actions[agent_i].copy()
       for key, value in a.items():
@@ -170,7 +171,9 @@ while True:
     print("\nGame", game_count, "ended with", game.frame_count, "frames")
     for agent_i in range(len(game.agents)):
       print("Agent", agent_i, "Rewards:", game_rewards_sum[agent_i])
-      print("Reasons:", game_rewards_reasons[agent_i])
+
+      reasons_counter = collections.Counter(game_rewards_reasons[agent_i])
+      print("Reasons:", reasons_counter)
 
   # Training loop for each agent
   for agent_i in range(len(game.agents)):

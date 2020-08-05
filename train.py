@@ -187,7 +187,7 @@ while True:
     )
 
     if ((game_count - 1) % 10) == 0:
-      print("Agent", agent_i, "Rewards:", game_rewards[i])
+      print("Agent", agent_i, "Rewards:", game_rewards[agent_i])
 
   if ((game_count - 1) % 10) == 0:
     game_actions = []

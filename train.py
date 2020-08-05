@@ -155,7 +155,8 @@ while True:
     # Update the starting states.
     states = new_states
 
-  print("\nGame", game_count, "ended with", game.frame_count, "frames")
+  if ((game_count - 1) % 10) == 0:
+    print("\nGame", game_count, "ended with", game.frame_count, "frames")
 
   # Training loop for each agent
   for agent_i in range(len(game.agents)):
@@ -185,10 +186,10 @@ while True:
         epochs=1, verbose=0
     )
 
-    print("Agent", agent_i, "Rewards:", game_rewards[i])
+    if ((game_count - 1) % 10) == 0:
+      print("Agent", agent_i, "Rewards:", game_rewards[i])
 
   if ((game_count - 1) % 10) == 0:
-    print("Saving game", game_count)
     game_actions = []
     for snap_i in range(len(actions_buffer[0][-1])):
       snap_actions = []

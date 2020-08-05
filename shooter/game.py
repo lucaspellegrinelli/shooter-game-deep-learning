@@ -10,6 +10,8 @@ class Game:
   def __init__(self, agents, obstacles, ui=False, player_control=False):
     self.running = True
 
+    random.seed(42)
+
     self.fps = 30
     self.max_game_time = self.fps * 30 # 30 seconds
     self.frame_count = 0

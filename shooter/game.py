@@ -63,6 +63,9 @@ class Game:
     return rewards, new_states
 
   def play_game(self, agent_actions):
+    rewards = []
+    for _ in range(len(self.agents)): rewards.append(0)
+
     while self.running:
       if self.frame_count >= self.max_game_time:
         self.running = False
@@ -91,6 +94,7 @@ class Game:
         true_keys = [key for key, item in agent_actions[indx][i].items() if item]
         if len(true_keys) > 0:
           print("Agent", i, "Frame", indx, "Keys", true_keys, "Reward", agent.reward)
+        rewards[i] += agent.reward
         
         if self.ui:
           agent.draw_fov()
@@ -106,6 +110,8 @@ class Game:
 
     if self.ui:
       pygame.quit()
+
+    print("Total rewards:", rewards)
 
   def run(self):
     while self.running:

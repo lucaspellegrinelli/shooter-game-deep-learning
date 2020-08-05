@@ -118,6 +118,8 @@ while True:
     if len(actions_buffer[i]) > params["game_buffer"]:
       actions_buffer[i].pop()
 
+  rewards_sum = [0 for _ in range(len(game.agents))]
+
   while game.running:
     # If observing
     if random.random() < params["epsilon"] or len(actions_buffer[i][-1]) < params["memory"]:
@@ -144,6 +146,9 @@ while True:
     # Take action, observe new state and get agents rewards
     rewards, new_states = game.step(actions)
 
+    for i, r in enumerate(rewards):
+      rewards_sum[i] += r
+
     # Save the state, actions and reward
     for i in range(len(rewards)):
       actions_buffer[i][-1].append((states[i], actions[i], rewards[i], new_states[i]))
@@ -155,11 +160,7 @@ while True:
     print("\nGame", game_count, "ended with", game.frame_count, "frames")
 
     for agent_i in range(len(game.agents)):
-      total_reward = 0
-      for s, a, r, ns in actions_buffer[agent_i][-1]:
-        total_reward += r
-
-      print("Agent", agent_i, "Rewards:", total_reward)
+      print("Agent", agent_i, "Rewards:", rewards_sum[agent_i])
 
   # Training loop for each agent
   for agent_i in range(len(game.agents)):

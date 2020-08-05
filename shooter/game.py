@@ -76,20 +76,21 @@ class Game:
         for o in self.obstacles: o.draw()
 
       for i, agent in enumerate(self.agents):
-        agent.tick_time()
+        agent.reset_reward()
         agent.report_game([a for i_, a in enumerate(self.agents) if i != i_], self.obstacles)
 
+        indx = self.frame_count - 1
+        if indx >= len(agent_actions):
+          indx = len(agent_actions) - 1
+
+        agent.report_inputs(agent_actions[indx][i])
+        agent.tick_time()
+
+        true_keys = [key for key, item in agent_actions[indx][i].items() if item]
+        if len(true_keys) > 0:
+          print("Agent", i, "Frame", indx, "Keys", true_keys, "Reward", agent.reward)
+        
         if self.ui:
-          indx = self.frame_count - 1
-          if indx >= len(agent_actions):
-            indx = len(agent_actions) - 1
-
-          true_keys = [key for key, item in agent_actions[indx][i].items() if item]
-
-          if len(true_keys) > 0:
-            print("Agent", i, "Frame", indx, "Keys", true_keys)
-
-          agent.report_inputs(agent_actions[indx][i])
           agent.draw_fov()
           agent.draw_agent()
           agent.draw_hitbox()

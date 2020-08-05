@@ -58,6 +58,7 @@ class Agent:
 
   def tick_time(self):
     self.calculate_hitbox_lines()
+    self.calculate_raycasts()
 
     self.move()
     
@@ -147,7 +148,7 @@ class Agent:
       raycast_hits.append(pt)
 
       if isinstance(pt["object"], Agent):
-        self.give_reward("tracking", a)
+        self.give_reward("tracking", a - self.current_angle)
 
     return raycast_hits
 
@@ -322,7 +323,7 @@ class Agent:
     elif label == "hit_agent":
       self.reward += 300
     elif label == "tracking":
-      self.reward += 10 - info
+      self.reward += 1 - info
     elif label == "take_damage":
       self.reward -= 50
     else:

@@ -19,7 +19,7 @@ params = {
   "epsilon_greedy_frames": 1000000.0, # Number of frames for exploration
   "max_memory_length": 100000, # Maximum replay length
   "update_after_actions": 4, # Train the model after 4 actions
-  "update_target_network": 10 # How often to update the target network
+  "update_target_network": 10000 # How often to update the target network
 }
 
 wandb.init(project="shooter-q-learning")

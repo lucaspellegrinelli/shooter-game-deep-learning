@@ -174,6 +174,10 @@ class QTrainer:
                           self.frame_count,
                           self.params["epsilon"]))
 
+    model_name = "model_{}_{}.h5".format(self.running_reward, self.episode_count)
+    if self.save_model:
+      self.model_target.save(model_name)
+
     if self.use_wandb:
       wandb.log({
         "running_reward": self.running_reward,
@@ -183,5 +187,4 @@ class QTrainer:
       })
 
       if self.save_model:
-        self.model_target.save("model.h5")
-        wandb.save("model.h5")
+        wandb.save(model_name)

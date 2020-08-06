@@ -1,5 +1,6 @@
 import numpy as np
 import random
+random.seed(42)
 import json
 import collections
 import tensorflow as tf
@@ -23,7 +24,7 @@ def process_mini_batch(mini_batch, model):
   mb_len = len(mini_batch)
 
   old_states = np.zeros(shape=(mb_len, params["input_count"]))
-  actions = np.zeros(shape=(mb_len, 7))
+  actions = np.zeros(shape=(mb_len, 8))
   rewards = np.zeros(shape=(mb_len,))
   new_states = np.zeros(shape=(mb_len, params["input_count"]))
 
@@ -59,21 +60,23 @@ def create_model():
   model = Sequential()
   model.add(Input(shape=(params["input_count"])))
   model.add(Dense(64, activation='relu'))
-  model.add(Dense(7, activation='linear'))
+  model.add(Dense(8, activation='linear'))
 
   model.compile(loss='mse', optimizer=Adam())
 
   return model
 
 def get_random_action():
+  r = random.randint(0, 7)
   return {
-    "left": False,
-    "right": False,
-    "up": False,
-    "down": False,
-    "rot_left": False,
-    "rot_right": False,
-    "fire": False
+    "left": r == 0,
+    "right": r == 1,
+    "up": r == 2,
+    "down": r == 3,
+    "rot_left": r == 4,
+    "rot_right": r == 5,
+    "fire": r == 6,
+    "nothing": r == 7
   }
 
 def create_game():
@@ -142,11 +145,11 @@ while True:
           "down": np.argmax(pred_actions) == 3,
           "rot_left": np.argmax(pred_actions) == 4,
           "rot_right": np.argmax(pred_actions) == 5,
-          "fire": np.argmax(pred_actions) == 6
+          "fire": np.argmax(pred_actions) == 6,
+          "nothing": np.argmax(pred_actions) == 7
         })
 
     # Take action, observe new state and get agents rewards
-    print(actions)
     rewards, rewards_reasons, new_states = game.step(actions)
 
     # Save relevant stuff

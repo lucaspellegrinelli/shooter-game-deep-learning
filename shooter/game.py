@@ -59,7 +59,7 @@ class Game:
       agent.tick_time()
 
       rewards.append(agent.reward)
-      rewards_reasons[i] = agent.reward_reasons
+      rewards_reasons[i] = agent.reward_reasons[:]
 
       new_states.append(agent.get_state())
       i += 1

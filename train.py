@@ -25,7 +25,7 @@ params = {
 wandb.init(project="shooter-q-learning")
 
 env = ShooterEnv()
-trainer = QTrainerLSTM(env, params, use_wandb=True, save_model=False)
+trainer = QTrainerLSTM(env, params, use_wandb=True, save_model=True, upload_model=True)
 
 while True:
   trainer.iterate()

@@ -8,7 +8,7 @@ from tensorflow.keras import layers
 from trainer.q_model import QModel
 
 class QTrainer:
-  def __init__(self, env, params, use_wandb=False, save_model=False):
+  def __init__(self, env, params, use_wandb=False, save_model=False, upload_model=False):
     # Learner params
     self.params = params
 
@@ -18,6 +18,7 @@ class QTrainer:
     # If its going to log into wandb
     self.use_wandb = use_wandb
     self.save_model = save_model
+    self.upload_model = upload_model
 
     # Makes the predictions for Q-values which are used to make a action.
     self.model = QModel(params["num_inputs"], params["num_actions"])
@@ -169,10 +170,8 @@ class QTrainer:
     
   def log_progress(self):
     template = "running reward: {:.2f} at episode {}, frame count {}, epsilon {}"
-    print(template.format(self.running_reward,
-                          self.episode_count,
-                          self.frame_count,
-                          self.params["epsilon"]))
+    print(template.format(self.running_reward, self.episode_count,
+                          self.frame_count, self.params["epsilon"]))
 
     model_name = "model_{}_{}.h5".format(self.running_reward, self.episode_count)
     if self.save_model:
@@ -186,5 +185,5 @@ class QTrainer:
         "epsilon": self.params["epsilon"]
       })
 
-      if self.save_model:
+      if self.upload_model:
         wandb.save(model_name)

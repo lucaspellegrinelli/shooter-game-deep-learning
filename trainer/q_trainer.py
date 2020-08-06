@@ -88,11 +88,11 @@ class QTrainer:
 
       # Limit the state and reward history
       if len(self.rewards_history) > self.params["max_memory_length"]:
-        del rewards_history[:1]
-        del state_history[:1]
-        del state_next_history[:1]
-        del action_history[:1]
-        del done_history[:1]
+        del self.rewards_history[:1]
+        del self.state_history[:1]
+        del self.state_next_history[:1]
+        del self.action_history[:1]
+        del self.done_history[:1]
 
       # If game has ended, break loop
       if done:
@@ -159,5 +159,11 @@ class QTrainer:
     self.model_target.set_weights(self.model.get_weights())
 
     # Log details
-    template = "running reward: {:.2f} at episode {}, frame count {}"
-    print(template.format(self.running_reward, self.episode_count, self.frame_count))
+    self.log_progress()
+    
+  def log_progress(self):
+    template = "running reward: {:.2f} at episode {}, frame count {}, epsilon {}"
+    print(template.format(self.running_reward,
+                          self.episode_count,
+                          self.frame_count,
+                          self.params["epsilon"]))

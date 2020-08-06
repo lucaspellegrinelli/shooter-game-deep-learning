@@ -2,13 +2,16 @@ import numpy as np
 import gym
 import random
 import collections
-# import pygame
+
+try:
+  import pygame
+except: pass
 
 from shooter.agent import Agent
 from shooter.obstacle import Obstacle
 
 class ShooterEnv(gym.Env):
-  def __init__(self):
+  def __init__(self, use_ui=False):
     super(ShooterEnv, self).__init__()
 
     self.agents = [

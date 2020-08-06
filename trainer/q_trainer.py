@@ -17,6 +17,7 @@ class QTrainer:
 
     # If its going to log into wandb
     self.use_wandb = use_wandb
+    self.save_model = save_model
 
     # Makes the predictions for Q-values which are used to make a action.
     self.model = QModel(params["num_inputs"], params["num_actions"])

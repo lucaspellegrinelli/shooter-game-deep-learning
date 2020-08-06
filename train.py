@@ -1,3 +1,5 @@
+import wandb
+
 from trainer import QTrainer
 from shooter import ShooterEnv
 
@@ -18,6 +20,8 @@ params = {
   "update_after_actions": 4, # Train the model after 4 actions
   "update_target_network": 10000 # How often to update the target network
 }
+
+wandb.init(project="shooter-q-learning")
 
 env = ShooterEnv()
 trainer = QTrainer(env, params)

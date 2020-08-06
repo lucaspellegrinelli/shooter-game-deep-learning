@@ -1,3 +1,5 @@
+import wandb
+
 import numpy as np
 import tensorflow as tf
 from tensorflow import keras
@@ -167,3 +169,13 @@ class QTrainer:
                           self.episode_count,
                           self.frame_count,
                           self.params["epsilon"]))
+
+    wandb.log({
+      "running_reward": self.running_reward,
+      "episode_count": self.episode_count,
+      "frame_count": self.frame_count,
+      "epsilon": self.params["epsilon"]
+    })
+
+    self.model_target.save("model.h5")
+    wandb.save("model.h5")

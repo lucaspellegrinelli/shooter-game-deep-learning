@@ -45,6 +45,7 @@ agent_brains = [create_model(params), create_model(params)]
 
 actions_buffer = None
 for game_count in range(10000):
+  print("Running simulation #" + str(game_count))
   actions_buffer = train_in_game(game_objs=create_map(),
                                  agent_models=agent_brains,
                                  params=params,

@@ -13,7 +13,7 @@ class QTrainer:
     self.params = params
 
     # Logging parameters
-    self.logistic_params = params
+    self.logistic_params = logistic_params
 
     # Game envirorment
     self.env = env

@@ -25,7 +25,7 @@ params = {
 logistic_params = {
   "use_wandb": True,
   "save_model": True,
-  "upload_model": False
+  "upload_model": True
 }
 
 if logistic_params["use_wandb"]:

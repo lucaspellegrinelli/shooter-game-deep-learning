@@ -5,9 +5,9 @@ import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers
 
-from trainer.q_model import QModel
+from trainer.q_model import QModelLSTM
 
-class QTrainer:
+class QTrainerLSTM:
   def __init__(self, env, params, use_wandb=False, save_model=False):
     # Learner params
     self.params = params
@@ -19,10 +19,10 @@ class QTrainer:
     self.use_wandb = use_wandb
 
     # Makes the predictions for Q-values which are used to make a action.
-    self.model = QModel(params["num_inputs"], params["num_actions"])
+    self.model = QModelLSTM(params["num_inputs"], params["agent_memory"], params["num_actions"])
 
     # Prediction of future rewards. Only updated when target Q-value is stable (after `update_target_network` steps)
-    self.model_target = QModel(params["num_inputs"], params["num_actions"])
+    self.model_target = QModelLSTM(params["num_inputs"], params["agent_memory"], params["num_actions"])
 
     # The neural network optimizer
     self.optimizer = keras.optimizers.Adam(learning_rate=0.00025, clipnorm=1.0)
@@ -53,13 +53,15 @@ class QTrainer:
       self.frame_count += 1
 
       # Use epsilon-greedy for exploration
-      if self.frame_count < self.params["epsilon_random_frames"] or self.params["epsilon"] > np.random.rand(1)[0]:
+      if self.frame_count <= self.params["agent_memory"] and \
+          (self.frame_count < self.params["epsilon_random_frames"] or \
+          self.params["epsilon"] > np.random.rand(1)[0]):
         # Take random action
         r = np.random.choice(self.params["num_actions"])
         action = [tf.one_hot(r, self.params["num_actions"]), None]
       else:
         # Predict action Q-values and take best action
-        state_tensor = tf.convert_to_tensor(state)
+        state_tensor = tf.convert_to_tensor(self.state_history[-self.params["agent_memory"]:])
         state_tensor = tf.expand_dims(state_tensor, 0)
         action_probs = self.model(state_tensor, training=False)
         action_i = tf.argmax(action_probs[0]).numpy()
@@ -84,7 +86,7 @@ class QTrainer:
 
       # Update every fourth frame and once batch size is over 32
       if self.frame_count % self.params["update_after_actions"] == 0:
-        if len(self.done_history) > self.params["batch_size"]:
+        if len(self.done_history) > max(self.params["batch_size"], self.params["agent_memory"]):
           self.update_model()
 
       # Update every 10000th frame
@@ -123,11 +125,17 @@ class QTrainer:
 
   def update_model(self):
     # Get indices of samples for replay buffers
-    indices = np.random.choice(range(len(self.done_history)), size=self.params["batch_size"])
+    ind_min = self.params["agent_memory"]
+    ind_max = len(self.done_history)
+    indices = np.random.choice(range(ind_min, ind_max), size=self.params["batch_size"])
 
     # Using list comprehension to sample from replay buffer
-    state_sample = np.array([self.state_history[i] for i in indices])
-    state_next_sample = np.array([self.state_next_history[i] for i in indices])
+    state_sample = np.array(
+      [self.state_history[i - self.params["agent_memory"] + 1 : i + 1] for i in indices]
+    )
+    state_next_sample = np.array(
+      [self.state_next_history[i - self.params["agent_memory"] + 1 : i + 1] for i in indices]
+    )
     rewards_sample = [self.rewards_history[i] for i in indices]
     action_sample = [self.action_history[i] for i in indices]
     done_sample = tf.convert_to_tensor([float(self.done_history[i]) for i in indices])

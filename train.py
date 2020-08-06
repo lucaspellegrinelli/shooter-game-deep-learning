@@ -1,11 +1,12 @@
 import wandb
 
-from trainer import QTrainer
+from trainer import QTrainer, QTrainerLSTM
 from shooter import ShooterEnv
 
 params = {
   "num_inputs": 33, # Number of inputs the agent can take
   "num_actions": 7, # Number of actions the agent can take
+  "agent_memory": 120, # Number of previous frames fed to the LSTM
   "seed": 42, # Random seed
   "gamma": 0.99, # Discount factor for past rewards
   "epsilon": 1.0, # Epsilon greedy parameter 
@@ -18,13 +19,13 @@ params = {
   "epsilon_greedy_frames": 1000000.0, # Number of frames for exploration
   "max_memory_length": 100000, # Maximum replay length
   "update_after_actions": 4, # Train the model after 4 actions
-  "update_target_network": 10000 # How often to update the target network
+  "update_target_network": 10 # How often to update the target network
 }
 
 wandb.init(project="shooter-q-learning")
 
 env = ShooterEnv()
-trainer = QTrainer(env, params)
+trainer = QTrainerLSTM(env, params, use_wandb=True, save_model=False)
 
 while True:
   trainer.iterate()

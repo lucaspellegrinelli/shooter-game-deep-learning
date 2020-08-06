@@ -11,3 +11,11 @@ def QModel(n_inputs, n_outputs):
   action = layers.Dense(n_outputs, activation="linear")(layer3)
 
   return keras.Model(inputs=inputs, outputs=action)
+
+def QModelLSTM(n_inputs, mem_size, n_outputs):
+  inputs = layers.Input(shape=(mem_size, n_inputs))
+  lstm1 = layers.LSTM(16)(inputs)
+  dense1 = layers.Dense(512, activation="relu")(lstm1)
+  action = layers.Dense(n_outputs, activation="linear")(dense1)
+
+  return keras.Model(inputs=inputs, outputs=action)

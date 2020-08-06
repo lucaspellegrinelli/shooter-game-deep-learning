@@ -8,26 +8,20 @@ import random
 
 class Agent:
   def __init__(self, position):
-    self.canvas = None
-    self.framerate = 30
-
     self.current_position = position
     self.current_speed = [0, 0]
     self.current_angle = 0
 
     self.current_health = 100
-
     self.current_bullets = 30
-
-    self.current_walk_accuracy = 1.0
     self.current_accuracy = 1.0
 
-    self.gun_fire_rate = self.framerate / 10 # 0.1 sec / shot
+    self.gun_fire_rate = 3 # 3 frames / shot
     self.gun_fire_rate_counter = 0
     self.gun_damage = 10
 
-    self.gun_fire_accuracy_penalty = 0.125
-    self.gun_frame_accuracy_recovery = 0.01 / (self.framerate / 60)
+    self.gun_fire_accuracy_penalty = 0.125 # penalty / shot
+    self.gun_frame_accuracy_recovery = 0.02 # recovery / frame
 
     self.agent_size = 10
 
@@ -46,19 +40,14 @@ class Agent:
     self.angle_speed = 0.05
     self.speed = 2
 
-    self.input_frame_delay = self.framerate / 10 # 0.1 sec
+    self.input_frame_delay = 3 # 3 frames
     self.input_cache = []
-
-    self.vision_frame_delay = self.framerate / 10 # 0.1 sec
-    self.vision_cache = []
 
     self.map_hitboxes = []
 
-    self.time_progress = 0
-
     self.reward = 0
-    self.reward_reasons = []
 
+  # Updates the angent positions and calculations for the next frame
   def tick_time(self):
     self.calculate_hitbox_lines()
     self.calculate_raycasts()
@@ -72,124 +61,170 @@ class Agent:
     if self.current_accuracy > 1.0: self.current_accuracy = 1.0
     if self.current_accuracy < 0.0: self.current_accuracy = 0.0
 
+  # Calculates next position (avoiding clips) and moves the agent
   def move(self):
+    # Theoretical next position
     new_pos_x = self.current_position[0] + self.current_speed[0] * self.speed
     new_pos_y = self.current_position[1] + self.current_speed[1] * self.speed
 
+    # Theoretical position delta
     delta_pos_x = new_pos_x - self.current_position[0]
     delta_pos_y = new_pos_y - self.current_position[1]
 
+    # Keeps track if the user has clipped into a wall/other agent
     clipped_x = False
     clipped_y = False
 
+    # For each hitbox in the map
     for hb in self.map_hitboxes:
       if clipped_x and clipped_y: return
 
+      # For each line in the agent hitbox
       for v in self.hitbox_lines:
+        # Calculate new position of the hitbox line after moving
         x1 = v["from"][0] + delta_pos_x
         y1 = v["from"][1] + delta_pos_y
         x2 = v["to"][0] + delta_pos_x
         y2 = v["to"][1] + delta_pos_y
 
+        # Calculate if the new lines intercept with the hitbox
         pt_x = self.calculate_line_interception(x1, v["from"][1], x2, v["to"][1],
           hb["from"][0], hb["from"][1], hb["to"][0], hb["to"][1])
         pt_y = self.calculate_line_interception(v["from"][0], y1, v["to"][0], y2,
           hb["from"][0], hb["from"][1], hb["to"][0], hb["to"][1])
 
+        # If the new line position intercepts a hitbox, mark the movement as clipped
         if pt_x["inbounds"]: clipped_x = True
         if pt_y["inbounds"]: clipped_y = True
 
         if clipped_x and clipped_y: return
 
+    # If the movement is not clipped into another hitbox, update the position
     if not clipped_x: self.current_position[0] = new_pos_x
     if not clipped_y: self.current_position[1] = new_pos_y
 
-    if (not clipped_x and self.current_speed[0] != 0) or (not clipped_y and self.current_speed[1] != 0):
-      self.current_walk_accuracy = 0.5
-    else:
-      self.current_walk_accuracy = 1.0
-
+  # Logic for firing the agent's gun
   def fire_gun(self):
+    # If fire rate has reseted and agent has bullets
     if self.gun_fire_rate_counter == 0 and self.current_bullets > 0:
+      # Reset fire rate cooldown
       self.gun_fire_rate_counter = self.gun_fire_rate
+
+      # Decreases accuracy
       self.current_accuracy -= self.gun_fire_accuracy_penalty
+
+      # Decreases bullet count
       self.current_bullets -= 1
 
+      # Hit coorinates of the agent aim raycast 
       pt = self.calculate_raycast_hit(self.current_angle)
+
+      # If hit another agent
       if isinstance(pt["object"], Agent):
+        # Updates reward
         self.give_reward("shoot_at_agent")
-        if random.random() < self.current_accuracy * self.current_walk_accuracy:
+
+        # If agent hit shot (based on its accuracy)
+        if random.random() < self.current_accuracy:
+          # Deals damage to other agent
           pt["object"].take_damage(self.gun_damage)
+
+          # Updates reward
           self.give_reward("hit_agent")
 
+  # Calculate the coordinates of the lines composing the agents hitbox
   def calculate_hitbox_lines(self):
     self.hitbox_lines = []
     last_vertex = self.hitbox_vertex[-1]
 
+    # For each vertex
     for v in self.hitbox_vertex:
+      # Creates the from-to coordinates
       last_vx = self.current_position[0] + last_vertex[0]
       last_vy = self.current_position[1] + last_vertex[1]
       vx = self.current_position[0] + v[0]
       vy = self.current_position[1] + v[1]
 
+      # Creates the line object
       self.hitbox_lines.append({
         "from": (last_vx, last_vy),
         "to": (vx, vy)
       })
 
+      # Updates "from" vertex
       last_vertex = v
 
+  # Calculates raycasts representing the agent's field of view
   def calculate_raycasts(self):
     raycast_hits = []
 
+    # Defines the angles of the field of view
     angle_start = self.current_angle - (self.fov_angle / 2) * (1 - 1 / self.fov_points)
     angle_end = self.current_angle + self.fov_angle / 2
     angle_step = self.fov_angle / self.fov_points
 
+    # Keeps track of the closest fov raycast to hit an agent
     closest_angle_to_enemy = None
+
+    # For each raycast angle in the fov
     for a in np.arange(angle_start, angle_end, angle_step):
+      # Calculates the point the raycast hits
       pt = self.calculate_raycast_hit(a)
       raycast_hits.append(pt)
 
+      # If the raycast hits an agent
       if isinstance(pt["object"], Agent):
+        # Calculate the distance in angles from the raycast to the center of the fov
         a_dist = abs(a - self.current_angle)
+
+        # Updates the closest raycast angle to enemy
         if (closest_angle_to_enemy is None) or (a_dist < closest_angle_to_enemy):
           closest_angle_to_enemy = a_dist
 
+    # If there was a raycast that hit an agent, give a reward based on how far
+    # from the center of the fov it was
     if closest_angle_to_enemy is not None:
       self.give_reward("tracking", closest_angle_to_enemy)
 
     return raycast_hits
 
+  # Calculates the hit position and object of a raycast
   def calculate_raycast_hit(self, angle):
+    # Define initial values
     rc_x = self.current_position[0] + 1000 * math.cos(angle)
     rc_y = self.current_position[1] + 1000 * math.sin(angle)
     hit_object = None
 
+    # Vertex of a line from the use to the initial value
     x1 = self.current_position[0]
     y1 = self.current_position[1]
     x2 = rc_x
     y2 = rc_y
 
+    # For line in the map hitbox
     for line in self.map_hitboxes:
+      # Define the vertexes of the line
       x3 = line["from"][0]
       y3 = line["from"][1]
       x4 = line["to"][0]
       y4 = line["to"][1]
 
-      try:
-        pt = self.calculate_line_interception(x1, y1, x2, y2, x3, y3, x4, y4)
-        if pt["inbounds"] and math.hypot(x1 - pt["pos"][0], y1 - pt["pos"][1]) < math.hypot(x1 - rc_x, y1 - rc_y):
-          rc_x = pt["pos"][0]
-          rc_y = pt["pos"][1]
-          hit_object = line["object"]
-      except: pass
+      # Calculate interception of the hitbox line and the fov line
+      pt = self.calculate_line_interception(x1, y1, x2, y2, x3, y3, x4, y4)
 
+      # If the inteception was closer than the closest one yet, set it as the hit
+      if pt["inbounds"] and math.hypot(x1 - pt["pos"][0], y1 - pt["pos"][1]) < math.hypot(x1 - rc_x, y1 - rc_y):
+        rc_x = pt["pos"][0]
+        rc_y = pt["pos"][1]
+        hit_object = line["object"]
+
+    # Returns the hit object
     return {
       "pos": (rc_x, rc_y),
       "object": hit_object
     }
 
+  # Calculate the interception of two lines
   def calculate_line_interception(self, x1, y1, x2, y2, x3, y3, x4, y4):
     try:
       t = ((x1 - x3) * (y3 - y4) - (y1 - y3) * (x3 - x4)) / ((x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4))
@@ -207,14 +242,39 @@ class Agent:
         "inbounds": False
       }
 
+  # Handles damage taken from the agent
   def take_damage(self, damage):
+    # Decrease health
     self.current_health -= damage
+
+    # Gives reward (negative)
     self.give_reward("take_damage")
+
+    # Clamps the health to >= 0
     if self.current_health < 0: self.current_health = 0
 
-  def report_game(self, agents, obstacles, game_time):
+  # Gets the state of the agent with the infomation he has
+  def get_state(self):
+    raycasts = self.calculate_raycasts()
+    inputs = []
+    rc_hit_agent = []
+
+    # Gets the fov distances and if the raycasts hit another agent
+    for r in raycasts:
+      d = math.hypot(self.current_position[0] - r["pos"][0], self.current_position[1] - r["pos"][1])
+      inputs.append(d)
+      inputs.append(1 if isinstance(r["object"], Agent) else 0)    
+
+    # Sets another informations he has
+    inputs.append(self.current_health / 100)
+    inputs.append(self.current_bullets / 30)
+    inputs.append(self.gun_fire_rate_counter / self.gun_fire_rate)
+
+    return np.array(inputs)
+
+  # Reports the game to this agent, updating the hitboxes and gametime
+  def report_game(self, agents, obstacles):
     self.map_hitboxes = []
-    self.time_progress = game_time
 
     for agent in agents:
       for line in agent.hitbox_lines:
@@ -226,111 +286,29 @@ class Agent:
         line["object"] = obstacle
         self.map_hitboxes.append(line)
 
-  def get_state(self):
-    raycasts = self.calculate_raycasts()
-    inputs = []
-    rc_hit_agent = []
-
-    for r in raycasts:
-      d = math.hypot(self.current_position[0] - r["pos"][0], self.current_position[1] - r["pos"][1])
-      inputs.append(d)
-      inputs.append(1 if isinstance(r["object"], Agent) else 0)    
-
-    inputs.append(self.current_health / 100)
-    inputs.append(self.current_bullets / 30)
-    inputs.append(self.gun_fire_rate_counter / self.gun_fire_rate)
-    inputs.append(self.time_progress)
-
-    return np.array(inputs)
-
+  # Report the inputs this agent has to take
   def report_inputs(self, inputs):
     self.input_cache.append(inputs)
 
     if len(self.input_cache) > self.input_frame_delay:
-      inp = self.input_cache.pop()
+      inp = (np.array(self.input_cache.pop()) == 1)
 
-      if inp["left"]: self.current_speed[0] = -self.speed
-      if inp["right"]: self.current_speed[0] = self.speed
-      if inp["up"]: self.current_speed[1] = -self.speed
-      if inp["down"]: self.current_speed[1] = self.speed
+      if inp[0]: self.current_speed[0] = -self.speed # Left
+      if inp[1]: self.current_speed[0] = self.speed # Right
+      if inp[2]: self.current_speed[1] = -self.speed # Up
+      if inp[3]: self.current_speed[1] = self.speed # Down
 
-      if (not inp["left"]) and (not inp["right"]): self.current_speed[0] = 0
-      if inp["left"] and inp["right"]: self.current_speed[0] = 0
-      if (not inp["up"]) and (not inp["down"]): self.current_speed[1] = 0
-      if inp["up"] and inp["down"]: self.current_speed[1] = 0
+      if (not inp[0]) and (not inp[1]): self.current_speed[0] = 0
+      if inp[0] and inp[1]: self.current_speed[0] = 0
+      if (not inp[2]) and (not inp[3]): self.current_speed[1] = 0
+      if inp[2] and inp[3]: self.current_speed[1] = 0
 
-      if inp["rot_left"]: self.current_angle -= self.angle_speed
-      if inp["rot_right"]: self.current_angle += self.angle_speed
-      if inp["fire"]: self.fire_gun()
+      if inp[4]: self.current_angle -= self.angle_speed # rot_left
+      if inp[5]: self.current_angle += self.angle_speed # rot_right
+      if inp[6]: self.fire_gun() # fire
 
-  def draw_agent(self):
-    color = (255, 255, 255)
-    pygame.draw.circle(self.canvas, color, self.current_position, self.agent_size)
-
-  def draw_aim(self):
-    pt = self.calculate_raycast_hit(self.current_angle)
-
-    if self.gun_fire_rate_counter > 1:
-      line_color = (0, 0, 255)
-    else:
-      line_color = (255, 0, 0)
-
-    pygame.draw.line(self.canvas, line_color, self.current_position, pt["pos"])
-
-  def draw_hitbox(self):
-    last_vertex = self.hitbox_vertex[-1]
-    for v in self.hitbox_vertex:
-      last_vx = self.current_position[0] + last_vertex[0]
-      last_vy = self.current_position[1] + last_vertex[1]
-      vx = self.current_position[0] + v[0]
-      vy = self.current_position[1] + v[1]
-
-      pygame.draw.line(self.canvas, (100, 100, 100), (last_vx, last_vy), (vx, vy))
-      last_vertex = v
-    
-  def draw_fov(self):
-    raycasts = self.calculate_raycasts()
-    for r in raycasts:
-      pygame.draw.line(self.canvas, (100, 100, 100), self.current_position, r["pos"])
-
-      if isinstance(r["object"], Agent):
-        color = (255, 0, 0)
-        position = (int(r["pos"][0]), int(r["pos"][1]))
-        pygame.draw.circle(self.canvas, color, position, 1)
-
-  def draw_health_bar(self):
-    bg_color = (255, 0, 0)
-    bg_rect = (self.current_position[0] - 20, self.current_position[1] - 20, 40, 5)
-    
-    overlay_color = (0, 255, 0)
-    overlay_rect = (self.current_position[0] - 20, self.current_position[1] - 20, 40 * self.current_health / 100, 5)
-    
-    pygame.draw.rect(self.canvas, bg_color, bg_rect)
-
-    if self.current_health > 0:
-      pygame.draw.rect(self.canvas, overlay_color, overlay_rect)
-
-  def draw_accuracy_bar(self):
-    bg_color = (255, 0, 0)
-    bg_rect = (self.current_position[0] - 20, self.current_position[1] - 30, 40, 5)
-
-    overlay_color = (0, 0, 255)
-    overlay_rect = (self.current_position[0] - 20, self.current_position[1] - 30, 40 * self.current_accuracy, 5)
-
-    pygame.draw.rect(self.canvas, bg_color, bg_rect)
-
-    if self.current_accuracy > 0:
-      pygame.draw.rect(self.canvas, overlay_color, overlay_rect)
-
-  def set_canvas(self, canvas):
-    self.canvas = canvas
-
-  def is_dead(self):
-    self.current_health <= 0
-
+  # Gives rewards
   def give_reward(self, label, info=0.0):
-    self.reward_reasons.append(label)
-
     if label == "shoot_at_agent":
       self.reward += 200
     elif label == "hit_agent":
@@ -342,6 +320,76 @@ class Agent:
     else:
       self.reward = 0
 
-  def reset_reward(self):
-    self.reward_reasons = []
+  def is_dead(self):
+    self.current_health <= 0
+
+  def start_reward_record(self):
     self.reward = 0
+
+  def end_reward_record(self):
+    return self.reward
+
+  def set_seed(self, seed):
+    random.seed(seed)
+
+
+
+
+  # def draw_agent(self):
+  #   color = (255, 255, 255)
+  #   pygame.draw.circle(self.canvas, color, self.current_position, self.agent_size)
+
+  # def draw_aim(self):
+  #   pt = self.calculate_raycast_hit(self.current_angle)
+
+  #   if self.gun_fire_rate_counter > 1:
+  #     line_color = (0, 0, 255)
+  #   else:
+  #     line_color = (255, 0, 0)
+
+  #   pygame.draw.line(self.canvas, line_color, self.current_position, pt["pos"])
+
+  # def draw_hitbox(self):
+  #   last_vertex = self.hitbox_vertex[-1]
+  #   for v in self.hitbox_vertex:
+  #     last_vx = self.current_position[0] + last_vertex[0]
+  #     last_vy = self.current_position[1] + last_vertex[1]
+  #     vx = self.current_position[0] + v[0]
+  #     vy = self.current_position[1] + v[1]
+
+  #     pygame.draw.line(self.canvas, (100, 100, 100), (last_vx, last_vy), (vx, vy))
+  #     last_vertex = v
+    
+  # def draw_fov(self):
+  #   raycasts = self.calculate_raycasts()
+  #   for r in raycasts:
+  #     pygame.draw.line(self.canvas, (100, 100, 100), self.current_position, r["pos"])
+
+  #     if isinstance(r["object"], Agent):
+  #       color = (255, 0, 0)
+  #       position = (int(r["pos"][0]), int(r["pos"][1]))
+  #       pygame.draw.circle(self.canvas, color, position, 1)
+
+  # def draw_health_bar(self):
+  #   bg_color = (255, 0, 0)
+  #   bg_rect = (self.current_position[0] - 20, self.current_position[1] - 20, 40, 5)
+    
+  #   overlay_color = (0, 255, 0)
+  #   overlay_rect = (self.current_position[0] - 20, self.current_position[1] - 20, 40 * self.current_health / 100, 5)
+    
+  #   pygame.draw.rect(self.canvas, bg_color, bg_rect)
+
+  #   if self.current_health > 0:
+  #     pygame.draw.rect(self.canvas, overlay_color, overlay_rect)
+
+  # def draw_accuracy_bar(self):
+  #   bg_color = (255, 0, 0)
+  #   bg_rect = (self.current_position[0] - 20, self.current_position[1] - 30, 40, 5)
+
+  #   overlay_color = (0, 0, 255)
+  #   overlay_rect = (self.current_position[0] - 20, self.current_position[1] - 30, 40 * self.current_accuracy, 5)
+
+  #   pygame.draw.rect(self.canvas, bg_color, bg_rect)
+
+  #   if self.current_accuracy > 0:
+  #     pygame.draw.rect(self.canvas, overlay_color, overlay_rect)

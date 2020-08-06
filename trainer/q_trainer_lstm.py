@@ -8,17 +8,15 @@ from tensorflow.keras import layers
 from trainer.q_model import QModelLSTM
 
 class QTrainerLSTM:
-  def __init__(self, env, params, use_wandb=False, save_model=False, upload_model=False):
+  def __init__(self, env, params, logistic_params):
     # Learner params
     self.params = params
 
+    # Logging parameters
+    self.logistic_params = params
+
     # Game envirorment
     self.env = env
-
-    # If its going to log into wandb
-    self.use_wandb = use_wandb
-    self.save_model = save_model
-    self.upload_model = upload_model
 
     # Makes the predictions for Q-values which are used to make a action.
     self.model = QModelLSTM(params["num_inputs"], params["agent_memory"], params["num_actions"])
@@ -183,11 +181,13 @@ class QTrainerLSTM:
                           self.frame_count,
                           self.params["epsilon"]))
 
+    # Saving / Wandb logging
     model_name = "model_{}_{}.h5".format(self.running_reward, self.episode_count)
-    if self.save_model:
+
+    if self.logistic_params["save_model"]:
       self.model_target.save(model_name)
 
-    if self.use_wandb:
+    if self.logistic_params["use_wandb"]:
       wandb.log({
         "running_reward": self.running_reward,
         "episode_count": self.episode_count,
@@ -195,5 +195,5 @@ class QTrainerLSTM:
         "epsilon": self.params["epsilon"]
       })
 
-      if self.upload_model:
+      if self.logistic_params["upload_model"] and self.logistic_params["save_model"]:
         wandb.save(model_name)

@@ -22,10 +22,17 @@ params = {
   "update_target_network": 10000 # How often to update the target network
 }
 
-wandb.init(project="shooter-q-learning")
+logistic_params = {
+  "use_wandb": True,
+  "save_model": True,
+  "upload_model": False
+}
+
+if logistic_params["use_wandb"]:
+  wandb.init(project="shooter-q-learning")
 
 env = ShooterEnv()
-trainer = QTrainerLSTM(env, params, use_wandb=True, save_model=True, upload_model=True)
+trainer = QTrainerLSTM(env, params, logistic_params)
 
 while True:
   trainer.iterate()

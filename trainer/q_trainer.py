@@ -57,7 +57,8 @@ class QTrainer:
         state_tensor = tf.convert_to_tensor(state)
         state_tensor = tf.expand_dims(state_tensor, 0)
         action_probs = self.model(state_tensor, training=False)
-        action = tf.argmax(action_probs[0]).numpy()
+        action_i = tf.argmax(action_probs[0]).numpy()
+        action = [tf.one_hot(action_i, self.params["num_actions"]), None]
 
       # Decay probability of taking random action
       self.decay_epsilon()

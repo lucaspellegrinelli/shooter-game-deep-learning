@@ -50,8 +50,6 @@ class Game:
 
     i = 0
     for action, agent in zip(agent_actions, self.agents):
-      rewards_reasons.append([])
-
       agent.reset_reward()
       other_agents = [a for i_, a in enumerate(self.agents) if i != i_]
       agent.report_game(other_agents, self.obstacles, self.frame_count / self.max_game_time)
@@ -59,7 +57,7 @@ class Game:
       agent.tick_time()
 
       rewards.append(agent.reward)
-      rewards_reasons[i] = agent.reward_reasons[:]
+      rewards_reasons.append(agent.reward_reasons[:])
 
       new_states.append(agent.get_state())
       i += 1
@@ -90,18 +88,14 @@ class Game:
         agent.reset_reward()
         other_agents = [a for i_, a in enumerate(self.agents) if i != i_]
         agent.report_game(other_agents, self.obstacles, self.frame_count / self.max_game_time)
-
-        indx = self.frame_count - 1
-        if indx >= len(agent_actions):
-          indx = len(agent_actions) - 1
-
-        agent.report_inputs(agent_actions[indx][i])
+        agent.report_inputs(agent_actions[min(self.frame_count - 1, len(agent_actions))][i])
         agent.tick_time()
-
-        true_keys = [key for key, item in agent_actions[indx][i].items() if item]
-        if len(true_keys) > 0:
-          print("Agent", i, "Frame", indx, "Keys", true_keys, "Reward", agent.reward)
+  
         rewards[i] += agent.reward
+
+        if len(true_keys) > 0:
+          true_keys = [key for key, item in agent_actions[min(self.frame_count - 1, len(agent_actions))][i].items() if item]
+          print("Agent", i, "Frame", indx, "Keys", true_keys, "Reward", agent.reward)
         
         if self.ui:
           agent.draw_fov()

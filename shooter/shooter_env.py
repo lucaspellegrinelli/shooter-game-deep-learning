@@ -2,17 +2,19 @@ import numpy as np
 import gym
 import random
 import collections
+import copy
 
-try:
-  import pygame
+try: import pygame
 except: pass
 
 from shooter.agent import Agent
 from shooter.obstacle import Obstacle
 
 class ShooterEnv(gym.Env):
-  def __init__(self, use_ui=False):
+  def __init__(self, use_ui=False, action_lookup=None):
     super(ShooterEnv, self).__init__()
+    self.use_ui = use_ui
+    self.action_lookup = action_lookup
 
     self.agents = [
       Agent([100, 400]),
@@ -22,6 +24,14 @@ class ShooterEnv(gym.Env):
     self.obstacles = [
       Obstacle([(0, 0), (640, 0), (640, 480), (0, 480)])
     ]
+
+    if self.use_ui:
+      pygame.init()
+      self.screen = pygame.display.set_mode([640, 480])
+      self.clock = pygame.time.Clock()
+      self.font = pygame.font.SysFont("Arial", 18)
+      self.ui_running = True
+      self._render_loop()
 
   # Steps the game frame
   def step(self, actions):
@@ -71,10 +81,6 @@ class ShooterEnv(gym.Env):
     for i in range(len(self.agents)):
       self.agents[i].set_seed(seed)
 
-  # Render the game in a screen
-  def render(self):
-    pass
-
   def _next_observation(self, agent_id):
     return self.agents[agent_id].get_state()
 
@@ -86,4 +92,92 @@ class ShooterEnv(gym.Env):
         break
 
     return ended
-  
+
+  # Render the game in a screen
+  def _render_loop(self):
+    if not self.use_ui: return
+
+    # Drawing the obstacles
+    def draw_obstacle(obstacle):
+      color = (100, 100, 100)
+      for hb in obstacle.hitbox_lines:
+        pygame.draw.line(self.screen, color, hb["from"], hb["to"])
+
+    # Drawing agents
+    def draw_agent(agent, hitbox=True, aim=True, fov=False):
+      color = (255, 255, 255)
+      pygame.draw.circle(self.screen, color, agent.current_position, agent.agent_size)
+
+      if hitbox:
+        last_vertex = agent.hitbox_vertex[-1]
+        for v in agent.hitbox_vertex:
+          last_vx = agent.current_position[0] + last_vertex[0]
+          last_vy = agent.current_position[1] + last_vertex[1]
+          vx = agent.current_position[0] + v[0]
+          vy = agent.current_position[1] + v[1]
+
+          pygame.draw.line(self.screen, (100, 100, 100), (last_vx, last_vy), (vx, vy))
+          last_vertex = v
+
+      if aim:
+        pt = agent.calculate_raycast_hit(agent.current_angle)
+        if agent.gun_fire_rate_counter > 1: line_color = (0, 0, 255)
+        else: line_color = (255, 0, 0)
+        pygame.draw.line(self.screen, line_color, agent.current_position, pt["pos"])
+
+      if fov:
+        raycasts = agent.calculate_raycasts()
+        for r in raycasts:
+          pygame.draw.line(self.screen, (100, 100, 100), agent.current_position, r["pos"])
+
+          if isinstance(r["object"], Agent):
+            color = (255, 0, 0)
+            position = (int(r["pos"][0]), int(r["pos"][1]))
+            pygame.draw.circle(self.screen, color, position, 1)
+
+    # Drawing bars
+    def draw_bars(agent, health=True, accuracy=True):
+      if health:
+        bg_color = (255, 0, 0)
+        bg_rect = (agent.current_position[0] - 20, agent.current_position[1] - 20, 40, 5)
+        overlay_color = (0, 255, 0)
+        overlay_rect = (agent.current_position[0] - 20, agent.current_position[1] - 20, 40 * agent.current_health / 100, 5)
+        
+        pygame.draw.rect(self.screen, bg_color, bg_rect)
+
+        if agent.current_health > 0:
+          pygame.draw.rect(self.screen, overlay_color, overlay_rect)
+
+      if accuracy:
+        bg_color = (255, 0, 0)
+        bg_rect = (agent.current_position[0] - 20, agent.current_position[1] - 30, 40, 5)
+        overlay_color = (0, 0, 255)
+        overlay_rect = (agent.current_position[0] - 20, agent.current_position[1] - 30, 40 * agent.current_accuracy, 5)
+
+        pygame.draw.rect(self.screen, bg_color, bg_rect)
+
+        if agent.current_accuracy > 0:
+          pygame.draw.rect(self.screen, overlay_color, overlay_rect)
+          
+    # ----- END OF DRAWING FUNCTIONS ------
+
+    frame = 0
+    while self.ui_running:
+      for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+          self.ui_running = False
+
+      action = self.action_lookup(frame)
+      if action is None: break
+      else: self.step(action)
+
+      self.screen.fill((50, 50, 50))
+      for o in self.obstacles: draw_obstacle(o)
+      for a in self.agents:
+        draw_agent(a, hitbox=True, aim=True, fov=False)
+        draw_bars(a, health=True, accuracy=True)
+
+      pygame.display.flip()
+      self.clock.tick(30)
+      frame += 1
+

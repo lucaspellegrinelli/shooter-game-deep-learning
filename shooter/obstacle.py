@@ -1,10 +1,5 @@
-try:
-  import pygame
-except: pass
-
 class Obstacle:
   def __init__(self, points):
-    self.canvas = None
     self.points = points
     self.hitbox_lines = []
 
@@ -19,12 +14,3 @@ class Obstacle:
       })
 
       last_vertex = p
-
-  def draw(self):
-    color = (100, 100, 100)
-
-    for hb in self.hitbox_lines:
-      pygame.draw.line(self.canvas, color, hb["from"], hb["to"])
-
-  def set_canvas(self, canvas):
-    self.canvas = canvas

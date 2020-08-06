@@ -6,7 +6,7 @@ from shooter import ShooterEnv
 params = {
   "num_inputs": 33, # Number of inputs the agent can take
   "num_actions": 7, # Number of actions the agent can take
-  "agent_memory": 30, # Number of previous frames fed to the LSTM
+  "agent_memory": 150, # Number of previous frames fed to the LSTM
   "seed": 42, # Random seed
   "gamma": 0.99, # Discount factor for past rewards
   "epsilon": 1.0, # Epsilon greedy parameter 
@@ -25,14 +25,14 @@ params = {
 logistic_params = {
   "use_wandb": True,
   "save_model": True,
-  "upload_model": True
+  "upload_model": False
 }
 
 if logistic_params["use_wandb"]:
   wandb.init(project="shooter-q-learning")
 
 env = ShooterEnv()
-trainer = QTrainerLSTM(env, params, logistic_params)
+trainer = QTrainer(env, params, logistic_params)
 
 while True:
   trainer.iterate()

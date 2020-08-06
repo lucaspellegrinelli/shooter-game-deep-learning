@@ -14,7 +14,7 @@ def QModel(n_inputs, n_outputs):
 
 def QModelLSTM(n_inputs, mem_size, n_outputs):
   inputs = layers.Input(shape=(mem_size, n_inputs))
-  lstm1 = layers.LSTM(16)(inputs)
+  lstm1 = layers.LSTM(128)(inputs)
   dense1 = layers.Dense(512, activation="relu")(lstm1)
   action = layers.Dense(n_outputs, activation="linear")(dense1)
 

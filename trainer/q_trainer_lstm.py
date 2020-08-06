@@ -182,10 +182,10 @@ class QTrainerLSTM:
                           self.params["epsilon"]))
 
     # Saving / Wandb logging
-    model_name = "model_{}_{}.h5".format(self.running_reward, self.episode_count)
+    model_name = "models/model_{:.3f}_{}.h5".format(self.running_reward, self.episode_count)
 
     if self.logistic_params["save_model"]:
-      self.model_target.save(model_name)
+      self.model_target.save_weights(model_name)
 
     if self.logistic_params["use_wandb"]:
       wandb.log({

@@ -93,9 +93,9 @@ class Game:
   
         rewards[i] += agent.reward
 
+        true_keys = [key for key, item in agent_actions[min(self.frame_count - 1, len(agent_actions))][i].items() if item]
         if len(true_keys) > 0:
-          true_keys = [key for key, item in agent_actions[min(self.frame_count - 1, len(agent_actions))][i].items() if item]
-          print("Agent", i, "Frame", indx, "Keys", true_keys, "Reward", agent.reward)
+          print("Agent", i, "Frame", self.frame_count - 1, "Keys", true_keys, "Reward", agent.reward)
         
         if self.ui:
           agent.draw_fov()

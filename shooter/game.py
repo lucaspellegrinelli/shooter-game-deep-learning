@@ -5,6 +5,7 @@ except: pass
 from shooter.agent import Agent
 from shooter.obstacle import Obstacle
 import random
+import collections
 
 class Game:
   def __init__(self, agents, obstacles, ui=False, player_control=False):
@@ -69,7 +70,10 @@ class Game:
 
   def play_game(self, agent_actions):
     rewards = []
+    rewards_causes = []
+
     for _ in range(len(self.agents)): rewards.append(0)
+    for _ in range(len(self.agents)): rewards_causes.append([])
 
     while self.running:
       if self.frame_count >= self.max_game_time:
@@ -88,12 +92,13 @@ class Game:
         agent.reset_reward()
         other_agents = [a for i_, a in enumerate(self.agents) if i != i_]
         agent.report_game(other_agents, self.obstacles, self.frame_count / self.max_game_time)
-        agent.report_inputs(agent_actions[min(self.frame_count - 1, len(agent_actions))][i])
+        agent.report_inputs(agent_actions[min(self.frame_count, len(agent_actions)) - 1][i])
         agent.tick_time()
   
         rewards[i] += agent.reward
+        rewards_causes[i].extend(agent.reward_reasons)
 
-        true_keys = [key for key, item in agent_actions[min(self.frame_count - 1, len(agent_actions))][i].items() if item]
+        true_keys = [key for key, item in agent_actions[min(self.frame_count, len(agent_actions) - 1)][i].items() if item]
         if len(true_keys) > 0:
           print("Agent", i, "Frame", self.frame_count - 1, "Keys", true_keys, "Reward", agent.reward)
         
@@ -113,6 +118,10 @@ class Game:
       pygame.quit()
 
     print("Total rewards:", rewards)
+
+    for i in range(len(rewards)):
+      reasons_counter = collections.Counter(rewards_causes[i])
+      print("Rewards:", reasons_counter)
 
   def run(self):
     while self.running:

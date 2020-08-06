@@ -41,7 +41,7 @@ class Agent:
     self.hitbox_lines = []
 
     self.fov_angle = 103 * math.pi / 180
-    self.fov_points = 45
+    self.fov_points = 15
 
     self.angle_speed = 0.05
     self.speed = 2

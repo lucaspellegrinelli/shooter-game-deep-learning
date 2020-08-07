@@ -8,7 +8,7 @@ from trainer import QModel
 
 game = ShooterEnv()
 
-model = QModel(33, 7)
+model = QModel(34, 7)
 model.load_weights(sys.argv[1])
 
 epsilon = float(sys.argv[2])
@@ -24,9 +24,19 @@ for i in range(1000):
     r = np.random.choice(7)
     actions = [1 if x == r else 0 for x in range(7)]
 
-  game.step([actions, None], , i / 1000)
-  all_actions.append(actions)
+
+  r1 = np.random.choice(7)
+  a1 = [
+    1 if r1 == 0 else 0,
+    1 if (r1 == 1 or r1 == 4 or r1 == 5) else 0,
+    1 if r1 == 2 else 0,
+    1 if (r1 == 3 or r1 == 6) else 0,
+    0, 0, 0
+  ]
+
+  game.step([actions, a1], i / 1000)
+  all_actions.append([actions, a1])
 
 model_name = sys.argv[1].split(".h5")[0].split("model_")[1]
-with open("games/game_" + model_name + ".json", "w") as outfile:
+with open("other_games/game_" + model_name + ".json", "w") as outfile:
   json.dump(all_actions, outfile)

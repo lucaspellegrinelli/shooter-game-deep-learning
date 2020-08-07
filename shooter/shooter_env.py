@@ -1,6 +1,7 @@
 import numpy as np
 import gym
 import random
+import math
 import collections
 import copy
 
@@ -11,19 +12,16 @@ from shooter.agent import Agent
 from shooter.obstacle import Obstacle
 
 class ShooterEnv(gym.Env):
-  def __init__(self, use_ui=False, action_lookup=None):
+  def __init__(self, use_ui=False, action_lookup=None, init_agents=None):
     super(ShooterEnv, self).__init__()
     self.use_ui = use_ui
     self.action_lookup = action_lookup
 
-    self.agents = [
-      Agent([100, 400]),
-      Agent([100, 100])
-    ]
+    # Create agents and obstacles
+    self.reset()
 
-    self.obstacles = [
-      Obstacle([(0, 0), (640, 0), (640, 480), (0, 480)])
-    ]
+    if init_agents is not None:
+      self.agents = init_agents
 
     if self.use_ui:
       pygame.init()
@@ -64,9 +62,19 @@ class ShooterEnv(gym.Env):
 
   # Resets the game to its start configuration
   def reset(self):
+    agent_positions = []
+    for _ in range(2):
+      min_d = 99999
+      x, y = random.randint(50, 590), random.randint(50, 430)
+      for pos in agent_positions: min_d = min(min_d, math.hypot(pos[0] - x, pos[1] - y))
+      while min_d < 20:
+        x, y = random.randint(50, 590), random.randint(50, 430)
+        for pos in agent_positions: min_d = min(min_d, math.hypot(pos[0] - x, pos[1] - y))
+      agent_positions.append([x, y])
+
     self.agents = [
-      Agent([100, 400]),
-      Agent([100, 100])
+      Agent(agent_positions[0], random.uniform(-math.pi, math.pi)),
+      Agent(agent_positions[1], random.uniform(-math.pi, math.pi))
     ]
 
     self.obstacles = [
@@ -161,6 +169,7 @@ class ShooterEnv(gym.Env):
           
     # ----- END OF DRAWING FUNCTIONS ------
 
+    rewards = [0 for _ in range(2)]
     frame = 0
     while self.ui_running:
       for event in pygame.event.get():
@@ -168,16 +177,22 @@ class ShooterEnv(gym.Env):
           self.ui_running = False
 
       action = self.action_lookup(frame)
-      if action is None: break
-      else: self.step(action, frame / 1000)
+      if action is None:
+        break
+      else:
+        _, reward_, done, _ = self.step(action, frame / 1000)
+        if done: self.ui_running = False
+        for i, r in enumerate(reward_): rewards[i] += r
 
       self.screen.fill((50, 50, 50))
       for o in self.obstacles: draw_obstacle(o)
       for a in self.agents:
-        draw_agent(a, hitbox=True, aim=True, fov=False)
+        draw_agent(a, hitbox=True, aim=True, fov=True)
         draw_bars(a, health=True, accuracy=True)
 
       pygame.display.flip()
       self.clock.tick(30)
       frame += 1
+
+    print("Simulated rewards:", rewards)
 

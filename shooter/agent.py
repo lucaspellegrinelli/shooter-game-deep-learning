@@ -7,10 +7,10 @@ import numpy as np
 import random
 
 class Agent:
-  def __init__(self, position):
+  def __init__(self, position, rotation):
     self.current_position = position
     self.current_speed = [0, 0]
-    self.current_angle = 0
+    self.current_angle = rotation
 
     self.current_health = 100
     self.current_bullets = 30
@@ -271,6 +271,10 @@ class Agent:
     inputs.append(self.current_bullets / 30)
     inputs.append(self.gun_fire_rate_counter / self.gun_fire_rate)
     inputs.append(self.game_time)
+
+    inputs.append(self.current_position[0] / 640)
+    inputs.append(self.current_position[1] / 480)
+    inputs.append(self.current_angle)
 
     return np.array(inputs)
 

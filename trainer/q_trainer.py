@@ -47,10 +47,18 @@ class QTrainer:
 
   def iterate(self):
     # Reset game to initial state
+    current_game_actions = {"players": [], "actions": [], "rewards": []}
+
     state = np.array(self.env.reset())
     episode_reward = 0
 
-    current_game_actions = []
+    for agent in self.env.agents:
+      current_game_actions["rewards"].append(0)
+      current_game_actions["players"].append([
+        agent.current_position[0],
+        agent.current_position[1],
+        agent.current_angle
+      ])
 
     # For each step in game
     for timestep in range(1, self.params["max_steps_per_episode"]):
@@ -62,12 +70,12 @@ class QTrainer:
         r0 = np.random.choice(self.params["num_actions"])
         a0 = [1 if x == r0 else 0 for x in range(self.params["num_actions"])]
 
-        r1 = np.random.choice(self.params["num_actions"])
+        r1 = np.random.choice(4)
         a1 = [
           1 if r1 == 0 else 0,
-          1 if (r1 == 1 or r1 == 4 or r1 == 5) else 0,
+          1 if r1 == 1 else 0,
           1 if r1 == 2 else 0,
-          1 if (r1 == 3 or r1 == 6) else 0,
+          1 if r1 == 3 else 0,
           0, 0, 0
         ]
 
@@ -97,8 +105,9 @@ class QTrainer:
 
       # Apply the sampled action in our environment
       game_time = (timestep - 1) / self.params["max_steps_per_episode"]
-      current_game_actions.append(action)
+      current_game_actions["actions"].append(action)
       state_next_, reward_, done, _ = self.env.step(action, game_time)
+      for i, r in enumerate(reward_): current_game_actions["rewards"][i] += r
       reward = reward_[0]
       state_next = np.array(state_next_[0])
       episode_reward += reward

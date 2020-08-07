@@ -11,6 +11,7 @@ def QModel(n_inputs, n_outputs):
   action = layers.Dense(n_outputs, activation="linear")(layer3)
 
   model = keras.Model(inputs=inputs, outputs=action)
+  # model.load_weights("models/model_2552_5118.742.h5")
   return model
 
 def QModelLSTM(n_inputs, mem_size, n_outputs):

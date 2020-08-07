@@ -1,5 +1,5 @@
 import wandb
-
+import json
 import numpy as np
 import tensorflow as tf
 from tensorflow import keras
@@ -38,6 +38,8 @@ class QTrainer:
     self.done_history = []
     self.episode_reward_history = []
 
+    self.last_game_actions = []
+
     # Counters
     self.running_reward = 0
     self.episode_count = 0
@@ -48,6 +50,8 @@ class QTrainer:
     state = np.array(self.env.reset())
     episode_reward = 0
 
+    current_game_actions = []
+
     # For each step in game
     for timestep in range(1, self.params["max_steps_per_episode"]):
       self.frame_count += 1
@@ -55,21 +59,46 @@ class QTrainer:
       # Use epsilon-greedy for exploration
       if self.frame_count < self.params["epsilon_random_frames"] or self.params["epsilon"] > np.random.rand(1)[0]:
         # Take random action
-        r = np.random.choice(self.params["num_actions"])
-        action = [tf.one_hot(r, self.params["num_actions"]), None]
+        r0 = np.random.choice(self.params["num_actions"])
+        a0 = [1 if x == r0 else 0 for x in range(self.params["num_actions"])]
+
+        r1 = np.random.choice(self.params["num_actions"])
+        a1 = [
+          1 if r1 == 0 else 0,
+          1 if (r1 == 1 or r1 == 4 or r1 == 5) else 0,
+          1 if r1 == 2 else 0,
+          1 if (r1 == 3 or r1 == 6) else 0,
+          0, 0, 0
+        ]
+
+        action = [a0, a1]
       else:
         # Predict action Q-values and take best action
         state_tensor = tf.convert_to_tensor(state)
         state_tensor = tf.expand_dims(state_tensor, 0)
         action_probs = self.model(state_tensor, training=False)
+
         action_i = tf.argmax(action_probs[0]).numpy()
-        action = [tf.one_hot(action_i, self.params["num_actions"]), None]
+        a_i = [1 if x == action_i else 0 for x in range(self.params["num_actions"])]
+
+        action_r = np.random.choice(self.params["num_actions"])
+        a_r = [
+          1 if action_r == 0 else 0,
+          1 if (action_r == 1 or action_r == 4 or action_r == 5) else 0,
+          1 if action_r == 2 else 0,
+          1 if (action_r == 3 or action_r == 6) else 0,
+          0, 0, 0
+        ]
+
+        action = [a_i, a_r]
 
       # Decay probability of taking random action
       self.decay_epsilon()
 
       # Apply the sampled action in our environment
-      state_next_, reward_, done, _ = self.env.step(action)
+      game_time = (timestep - 1) / self.params["max_steps_per_episode"]
+      current_game_actions.append(action)
+      state_next_, reward_, done, _ = self.env.step(action, game_time)
       reward = reward_[0]
       state_next = np.array(state_next_[0])
       episode_reward += reward
@@ -102,6 +131,9 @@ class QTrainer:
       # If game has ended, break loop
       if done:
         break
+
+    # Update last game actions
+    self.last_game_actions = current_game_actions
 
     # Update running reward to check condition for solving
     self.update_running_reward(episode_reward)
@@ -167,15 +199,21 @@ class QTrainer:
     self.log_progress()
     
   def log_progress(self):
+    # Print info
     template = "running reward: {:.2f} at episode {}, frame count {}, epsilon {}"
     print(template.format(self.running_reward, self.episode_count,
                           self.frame_count, self.params["epsilon"]))
 
     # Saving / Wandb logging
-    model_name = "models/model_{}_{}.h5".format(self.running_reward, self.episode_count)
+    model_name = "models/model_{}_{:.3f}.h5".format(self.episode_count, self.running_reward)
+    game_name = "games/game_{}_{:.3f}.h5".format(self.episode_count, self.running_reward)
 
     if self.logistic_params["save_model"]:
       self.model_target.save_weights(model_name)
+
+    if self.logistic_params["save_replays"]:
+      with open(game_name, "w") as outfile:
+        json.dump(self.last_game_actions, outfile)
 
     if self.logistic_params["use_wandb"]:
       wandb.log({

@@ -4,7 +4,7 @@ from trainer import QTrainer, QTrainerLSTM
 from shooter import ShooterEnv
 
 params = {
-  "num_inputs": 33, # Number of inputs the agent can take
+  "num_inputs": 34, # Number of inputs the agent can take
   "num_actions": 7, # Number of actions the agent can take
   "agent_memory": 150, # Number of previous frames fed to the LSTM
   "seed": 42, # Random seed
@@ -19,13 +19,14 @@ params = {
   "epsilon_greedy_frames": 1000000.0, # Number of frames for exploration
   "max_memory_length": 100000, # Maximum replay length
   "update_after_actions": 4, # Train the model after 4 actions
-  "update_target_network": 10000 # How often to update the target network
+  "update_target_network": 1000 # How often to update the target network
 }
 
 logistic_params = {
   "use_wandb": True,
   "save_model": True,
-  "upload_model": False
+  "upload_model": False,
+  "save_replays": True
 }
 
 if logistic_params["use_wandb"]:

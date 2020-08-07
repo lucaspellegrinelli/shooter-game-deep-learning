@@ -44,6 +44,7 @@ class Agent:
     self.input_cache = []
 
     self.map_hitboxes = []
+    self.game_time = 0
 
     self.reward = 0
 
@@ -269,12 +270,14 @@ class Agent:
     inputs.append(self.current_health / 100)
     inputs.append(self.current_bullets / 30)
     inputs.append(self.gun_fire_rate_counter / self.gun_fire_rate)
+    inputs.append(self.game_time)
 
     return np.array(inputs)
 
   # Reports the game to this agent, updating the hitboxes and gametime
-  def report_game(self, agents, obstacles):
+  def report_game(self, agents, obstacles, game_time):
     self.map_hitboxes = []
+    self.game_time = game_time
 
     for agent in agents:
       for line in agent.hitbox_lines:

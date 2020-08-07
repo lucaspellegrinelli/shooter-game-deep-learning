@@ -34,7 +34,7 @@ class ShooterEnv(gym.Env):
       self._render_loop()
 
   # Steps the game frame
-  def step(self, actions):
+  def step(self, actions, game_time):
     rewards = []
     new_states = []
 
@@ -44,7 +44,7 @@ class ShooterEnv(gym.Env):
 
       # Report the game for the agent
       other_agents = [a for i_, a in enumerate(self.agents) if i != i_]
-      agent.report_game(other_agents, self.obstacles)
+      agent.report_game(other_agents, self.obstacles, game_time)
 
       # Report the inputs the agent recieved
       if action is not None:
@@ -169,7 +169,7 @@ class ShooterEnv(gym.Env):
 
       action = self.action_lookup(frame)
       if action is None: break
-      else: self.step(action)
+      else: self.step(action, frame / 1000)
 
       self.screen.fill((50, 50, 50))
       for o in self.obstacles: draw_obstacle(o)

@@ -10,7 +10,7 @@ actions = json.load(open(sys.argv[1], "r"))
 def action_lookup(frame):
   global actions
   if frame < len(actions):
-    return [actions[frame], None]
+    return actions[frame]
   else:
     return None
 

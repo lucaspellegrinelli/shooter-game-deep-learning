@@ -1,11 +1,17 @@
 import wandb
 import json
 import numpy as np
+from datetime import datetime
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers
 
 from trainer.q_model import QModel
+
+# Limiting the number of cores used while running this code
+cores = 8
+tf.config.threading.set_intra_op_parallelism_threads(cores)
+tf.config.threading.set_inter_op_parallelism_threads(cores)
 
 class QTrainer:
   def __init__(self, env, params, logistic_params):
@@ -209,8 +215,8 @@ class QTrainer:
     
   def log_progress(self):
     # Print info
-    template = "running reward: {:.2f} at episode {}, frame count {}, epsilon {}"
-    print(template.format(self.running_reward, self.episode_count,
+    template = "{} running reward: {:.2f} at episode {}, frame count {}, epsilon {}"
+    print(template.format(str(datetime.now()), self.running_reward, self.episode_count,
                           self.frame_count, self.params["epsilon"]))
 
     # Saving / Wandb logging

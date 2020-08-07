@@ -335,6 +335,3 @@ class Agent:
 
   def end_reward_record(self):
     return self.reward
-
-  def set_seed(self, seed):
-    random.seed(seed)

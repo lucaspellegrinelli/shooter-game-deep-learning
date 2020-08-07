@@ -62,15 +62,10 @@ class ShooterEnv(gym.Env):
 
   # Resets the game to its start configuration
   def reset(self):
-    agent_positions = []
-    for _ in range(2):
-      min_d = 99999
-      x, y = random.randint(50, 590), random.randint(50, 430)
-      for pos in agent_positions: min_d = min(min_d, math.hypot(pos[0] - x, pos[1] - y))
-      while min_d < 20:
-        x, y = random.randint(50, 590), random.randint(50, 430)
-        for pos in agent_positions: min_d = min(min_d, math.hypot(pos[0] - x, pos[1] - y))
-      agent_positions.append([x, y])
+    agent_positions = [
+      [random.randint(50, 590), random.randint(50, 430)],
+      [random.randint(50, 590), random.randint(50, 430)]
+    ]
 
     self.agents = [
       Agent(agent_positions[0], random.uniform(-math.pi, math.pi)),
@@ -82,12 +77,6 @@ class ShooterEnv(gym.Env):
     ]
 
     return self._next_observation(0)
-
-  # Sets the random seeds
-  def seed(self, seed):
-    random.seed(seed)
-    for i in range(len(self.agents)):
-      self.agents[i].set_seed(seed)
 
   def _next_observation(self, agent_id):
     return self.agents[agent_id].get_state()
@@ -127,12 +116,6 @@ class ShooterEnv(gym.Env):
           pygame.draw.line(self.screen, (100, 100, 100), (last_vx, last_vy), (vx, vy))
           last_vertex = v
 
-      if aim:
-        pt = agent.calculate_raycast_hit(agent.current_angle)
-        if agent.gun_fire_rate_counter > 1: line_color = (0, 0, 255)
-        else: line_color = (255, 0, 0)
-        pygame.draw.line(self.screen, line_color, agent.current_position, pt["pos"])
-
       if fov:
         raycasts = agent.calculate_raycasts()
         for r in raycasts:
@@ -142,6 +125,12 @@ class ShooterEnv(gym.Env):
             color = (255, 0, 0)
             position = (int(r["pos"][0]), int(r["pos"][1]))
             pygame.draw.circle(self.screen, color, position, 1)
+
+      if aim:
+        pt = agent.calculate_raycast_hit(agent.current_angle)
+        if agent.gun_fire_rate_counter > 1: line_color = (0, 0, 255)
+        else: line_color = (255, 0, 0)
+        pygame.draw.line(self.screen, line_color, agent.current_position, pt["pos"])
 
     # Drawing bars
     def draw_bars(agent, health=True, accuracy=True):

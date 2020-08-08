@@ -1,7 +1,16 @@
 import wandb
+import argparse
+import tensorflow as tf
 
-from trainer import QTrainer, QTrainerMemory
+from trainer import QTrainerMemory
 from shooter import ShooterEnv
+
+parser = argparse.ArgumentParser(description='Agent Trainer')
+parser.add_argument("-model", action="store", dest="modelpath", required=False)
+parser.add_argument("-ep", action="store", dest="episode", type=int, required=False)
+parser.add_argument("-frame", action="store", dest="frame", type=int, required=False)
+parser.add_argument("-epsilon", action="store", dest="epsilon", type=float, required=False)
+args = parser.parse_args()
 
 params = {
   "num_inputs": 37, # Number of inputs the agent can take
@@ -24,11 +33,19 @@ params = {
 logistic_params = {
   "use_wandb": True,
   "save_model": True,
-  "upload_model": False,
-  "save_replays": True
+  "upload_model": True,
+  "save_replays": False
 }
 
-init_params = { }
+if args.modelpath:
+  init_params = {
+    "modelpath": args.modelpath,
+    "episode_count": args.episode,
+    "frame_count": args.frame,
+    "epsilon": args.epsilon
+  }
+else:
+  init_params = {}
 
 if logistic_params["use_wandb"]:
   wandb.init(project="shooter-q-learning")
@@ -36,5 +53,6 @@ if logistic_params["use_wandb"]:
 env = ShooterEnv()
 trainer = QTrainerMemory(env, params, logistic_params, init_params)
 
-while True:
-  trainer.iterate()
+with tf.device('/gpu:0'):
+  while True:
+    trainer.iterate()

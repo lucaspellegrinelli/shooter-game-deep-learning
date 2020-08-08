@@ -55,6 +55,9 @@ class QTrainer:
     if "episode_count" in init_params: self.episode_count = init_params["episode_count"]
     if "frame_count" in init_params: self.frame_count = init_params["frame_count"]
     if "epsilon" in init_params: self.params["epsilon"] = init_params["epsilon"]
+    if "modelpath" in init_params:
+      self.model.load_weights(init_params["modelpath"])
+      self.model_target.load_weights(init_params["modelpath"])
 
   def iterate(self):
     # Reset game to initial state

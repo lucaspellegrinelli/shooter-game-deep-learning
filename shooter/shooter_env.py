@@ -94,6 +94,10 @@ class ShooterEnv(gym.Env):
   def _render_loop(self):
     if not self.use_ui: return
 
+    # Show the current frame
+    def update_frames(c_frame):
+      return self.font.render(str(c_frame), 1, pygame.Color("coral"))
+
     # Drawing the obstacles
     def draw_obstacle(obstacle):
       color = (100, 100, 100)
@@ -174,6 +178,7 @@ class ShooterEnv(gym.Env):
         for i, r in enumerate(reward_): rewards[i] += r
 
       self.screen.fill((50, 50, 50))
+      self.screen.blit(update_frames(frame), (10,0))
       for o in self.obstacles: draw_obstacle(o)
       for a in self.agents:
         draw_agent(a, hitbox=True, aim=True, fov=True)

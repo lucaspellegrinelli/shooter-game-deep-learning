@@ -4,14 +4,11 @@ from tensorflow.keras import layers
 
 def QModel(n_inputs, n_outputs):
   inputs = layers.Input(shape=(n_inputs, 1))
-
   layer1 = layers.Conv1D(filters=64, kernel_size=3, strides=1, activation="relu")(inputs)
   layer2 = layers.Flatten()(layer1)
   layer3 = layers.Dense(512, activation="relu")(layer2)
   action = layers.Dense(n_outputs, activation="linear")(layer3)
-
   model = keras.Model(inputs=inputs, outputs=action)
-  model.load_weights("models/model_2552_2977.011.h5")
   return model
 
 def QModelMemoryConv(n_inputs, mem_size, n_outputs):

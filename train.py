@@ -2,7 +2,7 @@ import wandb
 import argparse
 import tensorflow as tf
 
-from trainer import QTrainer, QTrainerMemory
+from trainer import QTrainer
 from shooter import ShooterEnv
 
 parser = argparse.ArgumentParser(description='Agent Trainer')
@@ -31,10 +31,10 @@ params = {
 }
 
 logistic_params = {
-  "use_wandb": True,
-  "save_model": True,
+  "use_wandb": False,
+  "save_model": False,
   "upload_model": False,
-  "save_replays": True
+  "save_replays": False
 }
 
 if args.modelpath:

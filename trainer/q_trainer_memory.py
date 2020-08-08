@@ -1,5 +1,6 @@
 import wandb
 import json
+import os
 import numpy as np
 from datetime import datetime
 import tensorflow as tf
@@ -48,6 +49,7 @@ class QTrainerMemory:
 
     # Counters
     self.running_reward = 0
+    self.running_reward_std = 0
     self.episode_count = 0
     self.frame_count = 0
 
@@ -160,6 +162,7 @@ class QTrainerMemory:
       del self.episode_reward_history[:1]
 
     self.running_reward = np.mean(self.episode_reward_history)
+    self.running_reward_std = np.std(self.episode_reward_history)
 
   def update_model(self):
     # Get indices of samples for replay buffers
@@ -223,15 +226,18 @@ class QTrainerMemory:
     game_name = "games/game_{}_{:.3f}.json".format(self.episode_count, self.running_reward)
 
     if self.logistic_params["save_model"]:
+      os.makedirs(os.path.dirname(model_name), exist_ok=True)
       self.model_target.save_weights(model_name)
 
     if self.logistic_params["save_replays"]:
+      os.makedirs(os.path.dirname(game_name), exist_ok=True)
       with open(game_name, "w") as outfile:
         json.dump(self.last_game_actions, outfile)
 
     if self.logistic_params["use_wandb"]:
       wandb.log({
         "running_reward": self.running_reward,
+        "running_reward_std": self.running_reward_std,
         "episode_count": self.episode_count,
         "frame_count": self.frame_count,
         "epsilon": self.params["epsilon"]

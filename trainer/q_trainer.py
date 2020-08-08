@@ -230,16 +230,18 @@ class QTrainer:
     game_name = "games/game_{}_{:.3f}.json".format(self.episode_count, self.running_reward)
 
     if self.logistic_params["save_model"]:
+      os.makedirs(os.path.dirname(model_name), exist_ok=True)
       self.model_target.save_weights(model_name)
 
     if self.logistic_params["save_replays"]:
+      os.makedirs(os.path.dirname(game_name), exist_ok=True)
       with open(game_name, "w") as outfile:
         json.dump(self.last_game_actions, outfile)
 
     if self.logistic_params["use_wandb"]:
       wandb.log({
         "running_reward": self.running_reward,
-        "running_reward_stf": self.running_reward_std,
+        "running_reward_std": self.running_reward_std,
         "episode_count": self.episode_count,
         "frame_count": self.frame_count,
         "epsilon": self.params["epsilon"]

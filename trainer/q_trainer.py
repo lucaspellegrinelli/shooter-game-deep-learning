@@ -50,6 +50,7 @@ class QTrainer:
     # Counters
     self.running_reward = 0
     self.running_reward_std = 0
+    self.running_reward_median = 0
     self.episode_count = 0
     self.frame_count = 0
 
@@ -167,6 +168,7 @@ class QTrainer:
 
     self.running_reward = np.mean(self.episode_reward_history)
     self.running_reward_std = np.std(self.episode_reward_history)
+    self.running_reward_median = np.median(self.episode_reward_history)
 
   def update_model(self):
     # Get indices of samples for replay buffers
@@ -242,6 +244,7 @@ class QTrainer:
       wandb.log({
         "running_reward": self.running_reward,
         "running_reward_std": self.running_reward_std,
+        "running_reward_median": self.running_reward_median,
         "episode_count": self.episode_count,
         "frame_count": self.frame_count,
         "epsilon": self.params["epsilon"]

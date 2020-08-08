@@ -11,14 +11,16 @@ def QModel(n_inputs, n_outputs):
   action = layers.Dense(n_outputs, activation="linear")(layer3)
 
   model = keras.Model(inputs=inputs, outputs=action)
-  # model.load_weights("models/model_2552_5118.742.h5")
+  model.load_weights("models/model_2552_2977.011.h5")
   return model
 
-def QModelLSTM(n_inputs, mem_size, n_outputs):
+def QModelMemoryConv(n_inputs, mem_size, n_outputs):
   inputs = layers.Input(shape=(mem_size, n_inputs))
-  lstm1 = layers.LSTM(128)(inputs)
-  dense1 = layers.Dense(512, activation="relu")(lstm1)
-  action = layers.Dense(n_outputs, activation="linear")(dense1)
-
+  conv0 = layers.Conv1D(filters=96, kernel_size=5, strides=1, activation="relu")(inputs)
+  conv1 = layers.Conv1D(filters=64, kernel_size=4, strides=1, activation="relu")(conv0)
+  conv2 = layers.Conv1D(filters=32, kernel_size=3, strides=1, activation="relu")(conv1)
+  flatten = layers.Flatten()(conv2)
+  dense = layers.Dense(128, activation="relu")(flatten)
+  action = layers.Dense(n_outputs, activation="linear")(dense)
   model = keras.Model(inputs=inputs, outputs=action)
   return model

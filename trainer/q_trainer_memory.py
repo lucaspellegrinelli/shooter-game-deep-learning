@@ -1,14 +1,20 @@
 import wandb
-
+import json
 import numpy as np
+from datetime import datetime
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers
 
-from trainer.q_model import QModelLSTM
+from trainer.q_model import QModelMemoryConv
 
-class QTrainerLSTM:
-  def __init__(self, env, params, logistic_params):
+# Limiting the number of cores used while running this code
+cores = 8
+tf.config.threading.set_intra_op_parallelism_threads(cores)
+tf.config.threading.set_inter_op_parallelism_threads(cores)
+
+class QTrainerMemory:
+  def __init__(self, env, params, logistic_params, init_params):
     # Learner params
     self.params = params
 
@@ -19,10 +25,10 @@ class QTrainerLSTM:
     self.env = env
 
     # Makes the predictions for Q-values which are used to make a action.
-    self.model = QModelLSTM(params["num_inputs"], params["agent_memory"], params["num_actions"])
+    self.model = QModelMemoryConv(params["num_inputs"], params["agent_memory"], params["num_actions"])
 
     # Prediction of future rewards. Only updated when target Q-value is stable (after `update_target_network` steps)
-    self.model_target = QModelLSTM(params["num_inputs"], params["agent_memory"], params["num_actions"])
+    self.model_target = QModelMemoryConv(params["num_inputs"], params["agent_memory"], params["num_actions"])
 
     # The neural network optimizer
     self.optimizer = keras.optimizers.Adam(learning_rate=0.00025, clipnorm=1.0)
@@ -38,15 +44,30 @@ class QTrainerLSTM:
     self.done_history = []
     self.episode_reward_history = []
 
+    self.last_game_actions = []
+
     # Counters
     self.running_reward = 0
     self.episode_count = 0
     self.frame_count = 0
 
+    if "episode_count" in init_params: self.episode_count = init_params["episode_count"]
+    if "frame_count" in init_params: self.episode_count = init_params["frame_count"]
+
   def iterate(self):
     # Reset game to initial state
+    current_game_actions = {"players": [], "actions": [], "rewards": []}
+
     state = np.array(self.env.reset())
     episode_reward = 0
+
+    for agent in self.env.agents:
+      current_game_actions["rewards"].append(0)
+      current_game_actions["players"].append([
+        agent.current_position[0],
+        agent.current_position[1],
+        agent.current_angle
+      ])
 
     # For each step in game
     for timestep in range(1, self.params["max_steps_per_episode"]):
@@ -54,24 +75,38 @@ class QTrainerLSTM:
 
       # Use epsilon-greedy for exploration
       if self.frame_count <= self.params["agent_memory"] and \
-          (self.frame_count < self.params["epsilon_random_frames"] or \
-          self.params["epsilon"] > np.random.rand(1)[0]):
+          self.frame_count < self.params["epsilon_random_frames"] or \
+          self.params["epsilon"] > np.random.rand(1)[0]:
         # Take random action
-        r = np.random.choice(self.params["num_actions"])
-        action = [tf.one_hot(r, self.params["num_actions"]), None]
+        r0 = np.random.choice(self.params["num_actions"])
+        a0 = [1 if x == r0 else 0 for x in range(self.params["num_actions"])]
+
+        r1 = np.random.choice(4)
+        a1 = [1 if x == r1 else 0 for x in range(self.params["num_actions"])]
+
+        action = [a0, a1]
       else:
         # Predict action Q-values and take best action
         state_tensor = tf.convert_to_tensor(self.state_history[-self.params["agent_memory"]:])
         state_tensor = tf.expand_dims(state_tensor, 0)
         action_probs = self.model(state_tensor, training=False)
+
         action_i = tf.argmax(action_probs[0]).numpy()
-        action = [tf.one_hot(action_i, self.params["num_actions"]), None]
+        a_i = [1 if x == action_i else 0 for x in range(self.params["num_actions"])]
+
+        r_n = np.random.choice(4)
+        r_a = [1 if x == r_n else 0 for x in range(self.params["num_actions"])]
+
+        action = [a_i, r_a]
 
       # Decay probability of taking random action
       self.decay_epsilon()
 
       # Apply the sampled action in our environment
-      state_next_, reward_, done, _ = self.env.step(action)
+      game_time = (timestep - 1) / self.params["max_steps_per_episode"]
+      current_game_actions["actions"].append(action)
+      state_next_, reward_, done, _ = self.env.step(action, game_time)
+      for i, r in enumerate(reward_): current_game_actions["rewards"][i] += r
       reward = reward_[0]
       state_next = np.array(state_next_[0])
       episode_reward += reward
@@ -104,6 +139,9 @@ class QTrainerLSTM:
       # If game has ended, break loop
       if done:
         break
+
+    # Update last game actions
+    self.last_game_actions = current_game_actions
 
     # Update running reward to check condition for solving
     self.update_running_reward(episode_reward)
@@ -175,17 +213,21 @@ class QTrainerLSTM:
     self.log_progress()
     
   def log_progress(self):
-    template = "running reward: {:.2f} at episode {}, frame count {}, epsilon {}"
-    print(template.format(self.running_reward,
-                          self.episode_count,
-                          self.frame_count,
-                          self.params["epsilon"]))
+    # Print info
+    template = "{} running reward: {:.2f} at episode {}, frame count {}, epsilon {}"
+    print(template.format(str(datetime.now()), self.running_reward, self.episode_count,
+                          self.frame_count, self.params["epsilon"]))
 
     # Saving / Wandb logging
-    model_name = "models/model_{:.3f}_{}.h5".format(self.running_reward, self.episode_count)
+    model_name = "models/model_{}_{:.3f}.h5".format(self.episode_count, self.running_reward)
+    game_name = "games/game_{}_{:.3f}.json".format(self.episode_count, self.running_reward)
 
     if self.logistic_params["save_model"]:
       self.model_target.save_weights(model_name)
+
+    if self.logistic_params["save_replays"]:
+      with open(game_name, "w") as outfile:
+        json.dump(self.last_game_actions, outfile)
 
     if self.logistic_params["use_wandb"]:
       wandb.log({

@@ -1,6 +1,6 @@
 import wandb
 
-from trainer import QTrainer, QTrainerLSTM
+from trainer import QTrainer, QTrainerMemory
 from shooter import ShooterEnv
 
 params = {
@@ -28,11 +28,17 @@ logistic_params = {
   "save_replays": True
 }
 
+init_params = {
+  "episode_count": 2550,
+  "frame_count": 2550000,
+  "epsilon": 0.1
+}
+
 if logistic_params["use_wandb"]:
   wandb.init(project="shooter-q-learning")
 
 env = ShooterEnv()
-trainer = QTrainer(env, params, logistic_params)
+trainer = QTrainer(env, params, logistic_params, init_params)
 
 while True:
   trainer.iterate()

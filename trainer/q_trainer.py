@@ -14,7 +14,7 @@ tf.config.threading.set_intra_op_parallelism_threads(cores)
 tf.config.threading.set_inter_op_parallelism_threads(cores)
 
 class QTrainer:
-  def __init__(self, env, params, logistic_params):
+  def __init__(self, env, params, logistic_params, init_params):
     # Learner params
     self.params = params
 
@@ -48,8 +48,13 @@ class QTrainer:
 
     # Counters
     self.running_reward = 0
+    self.running_reward_std = 0
     self.episode_count = 0
     self.frame_count = 0
+
+    if "episode_count" in init_params: self.episode_count = init_params["episode_count"]
+    if "frame_count" in init_params: self.frame_count = init_params["frame_count"]
+    if "epsilon" in init_params: self.params["epsilon"] = init_params["epsilon"]
 
   def iterate(self):
     # Reset game to initial state
@@ -167,6 +172,7 @@ class QTrainer:
       del self.episode_reward_history[:1]
 
     self.running_reward = np.mean(self.episode_reward_history)
+    self.running_reward_std = np.std(self.episode_reward_history)
 
   def update_model(self):
     # Get indices of samples for replay buffers
@@ -221,7 +227,7 @@ class QTrainer:
 
     # Saving / Wandb logging
     model_name = "models/model_{}_{:.3f}.h5".format(self.episode_count, self.running_reward)
-    game_name = "games/game_{}_{:.3f}.h5".format(self.episode_count, self.running_reward)
+    game_name = "games/game_{}_{:.3f}.json".format(self.episode_count, self.running_reward)
 
     if self.logistic_params["save_model"]:
       self.model_target.save_weights(model_name)
@@ -233,6 +239,7 @@ class QTrainer:
     if self.logistic_params["use_wandb"]:
       wandb.log({
         "running_reward": self.running_reward,
+        "running_reward_stf": self.running_reward_std,
         "episode_count": self.episode_count,
         "frame_count": self.frame_count,
         "epsilon": self.params["epsilon"]

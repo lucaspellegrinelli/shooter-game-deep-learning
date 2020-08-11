@@ -8,7 +8,6 @@ from shooter import ShooterEnv
 parser = argparse.ArgumentParser(description='Agent Trainer')
 parser.add_argument("-model", action="store", dest="modelpath", required=False)
 parser.add_argument("-ep", action="store", dest="episode", type=int, required=False)
-parser.add_argument("-frame", action="store", dest="frame", type=int, required=False)
 parser.add_argument("-epsilon", action="store", dest="epsilon", type=float, required=False)
 args = parser.parse_args()
 
@@ -41,7 +40,6 @@ if args.modelpath:
   init_params = {
     "modelpath": args.modelpath,
     "episode_count": args.episode,
-    "frame_count": args.frame,
     "epsilon": args.epsilon
   }
 else:

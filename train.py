@@ -15,7 +15,7 @@ args = parser.parse_args()
 params = {
   "num_inputs": 37, # Number of inputs the agent can take
   "num_actions": 7, # Number of actions the agent can take
-  "agent_memory": 150, # Number of previous frames fed to the LSTM
+  "agent_memory": 30, # Number of previous frames fed to the LSTM
   "gamma": 0.99, # Discount factor for past rewards
   "epsilon": 1.0, # Epsilon greedy parameter 
   "epsilon_max": 1.0, # Maximum epsilon greedy parameter
@@ -31,9 +31,9 @@ params = {
 }
 
 logistic_params = {
-  "use_wandb": False,
-  "save_model": False,
-  "upload_model": False,
+  "use_wandb": True,
+  "save_model": True,
+  "upload_model": True,
   "save_replays": False
 }
 

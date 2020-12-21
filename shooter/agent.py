@@ -1,7 +1,3 @@
-try:
-  import pygame
-except: pass
-
 import math
 import numpy as np
 import random
@@ -11,6 +7,9 @@ class Agent:
     self.current_position = position
     self.current_speed = [0, 0]
     self.current_angle = rotation
+
+    self.ui_obj = None
+    self.ui_transform = None
 
     self.current_health = 100
     self.current_bullets = 30
@@ -23,7 +22,7 @@ class Agent:
     self.gun_fire_accuracy_penalty = 0.125 # penalty / shot
     self.gun_frame_accuracy_recovery = 0.02 # recovery / frame
 
-    self.agent_size = 10
+    self.agent_size = 25
 
     self.hitbox_vertex = [
       (-self.agent_size, -self.agent_size),
@@ -35,12 +34,12 @@ class Agent:
     self.hitbox_lines = []
 
     self.fov_angle = 103 * math.pi / 180
-    self.fov_points = 15
+    self.fov_points = 25
 
     self.angle_speed = 0.05
     self.speed = 2
 
-    self.input_frame_delay = 3 # 3 frames
+    self.input_frame_delay = 0 # 3 frames
     self.input_cache = []
 
     self.map_hitboxes = []
@@ -326,6 +325,22 @@ class Agent:
       self.reward -= 100
     else:
       self.reward = 0
+
+  def set_position(self, x, y):
+    self.current_position = [x, y]
+    self.ui_transform.set_translation(x, y)
+
+  def set_rotation(self, rot):
+    self.current_angle = rot
+
+  def reset_values(self):
+    self.reward = 0
+    self.game_time = 0
+    self.current_health = 100
+    self.current_bullets = 30
+    self.current_accuracy = 1.0
+    self.gun_fire_rate_counter = 0
+    self.input_cache = []
 
   def is_dead(self):
     self.current_health <= 0

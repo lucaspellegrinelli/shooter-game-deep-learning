@@ -2,6 +2,7 @@ class Obstacle:
   def __init__(self, points):
     self.points = points
     self.hitbox_lines = []
+    self.ui_obj = None
 
     self.calculate_hitbox_lines()
 
